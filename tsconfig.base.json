@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@znkfxt/api": ["apps/api/src/index.ts"],
+      "@znkfxt/api/*": ["apps/api/src/*"],
+      "@znkfxt/web-widget": ["apps/web-widget/src/index.ts"],
+      "@znkfxt/web-widget/*": ["apps/web-widget/src/*"],
+      "@znkfxt/agent-console": ["apps/agent-console/src/index.ts"],
+      "@znkfxt/agent-console/*": ["apps/agent-console/src/*"],
+      "@znkfxt/admin-console": ["apps/admin-console/src/index.ts"],
+      "@znkfxt/admin-console/*": ["apps/admin-console/src/*"],
+      "@znkfxt/contracts": ["packages/contracts/src/index.ts"],
+      "@znkfxt/contracts/*": ["packages/contracts/src/*"],
+      "@znkfxt/shared-ui": ["packages/shared-ui/src/index.ts"],
+      "@znkfxt/shared-ui/*": ["packages/shared-ui/src/*"]
+    }
+  }
+}

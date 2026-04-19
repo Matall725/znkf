@@ -1,0 +1,37 @@
+{
+  "name": "znkfxt",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modular monolith workspace for the intelligent customer service MVP.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "check:workspace": "npm pkg get name --workspaces",
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
+    "format:check": "prettier --check .",
+    "dev:api": "npm --workspace @znkfxt/api run dev",
+    "start:api": "npm --workspace @znkfxt/api run start",
+    "test": "npm run test:api && npm run test:web-widget && npm run test:e2e",
+    "test:api": "npm --workspace @znkfxt/api run test",
+    "test:web-widget": "npm --workspace @znkfxt/web-widget run test",
+    "test:e2e": "vitest run e2e/tests/health.test.ts --environment node --pool threads",
+    "config:check:local": "npm --workspace @znkfxt/api run config:check -- --env-file ../../config/env/.env.local.example",
+    "config:check:test": "npm --workspace @znkfxt/api run config:check -- --env-file ../../config/env/.env.test.example",
+    "config:check:production": "npm --workspace @znkfxt/api run config:check -- --env-file ../../config/env/.env.production.example",
+    "check:boundaries": "node scripts/check-module-boundaries.mjs",
+    "check:local-services": "node scripts/check-local-services.mjs",
+    "db:migrate": "npm --workspace @znkfxt/api run db:migrate",
+    "db:migrate:test": "npm --workspace @znkfxt/api run db:migrate:test",
+    "db:migrate:down": "npm --workspace @znkfxt/api run db:migrate:down",
+    "check:migrations": "node scripts/check-database-migrations.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "jsdom": "^29.0.2",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  }
+}

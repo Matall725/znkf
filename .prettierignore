@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.npm-cache/
+package-lock.json
+memory/
+apps/api/src/database/migrations/*.sql
