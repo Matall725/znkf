@@ -1,0 +1,12 @@
+{
+  "migrations-dir": "src/database/migrations",
+  "migrations-table": "schema_migrations",
+  "schema": "app",
+  "create-schema": true,
+  "migrations-schema": "app",
+  "create-migrations-schema": true,
+  "migration-file-language": "sql",
+  "migration-filename-format": "utc",
+  "check-order": true,
+  "verbose": true
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@znkfxt/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend API service workspace for the intelligent customer service MVP.",
+  "scripts": {
+    "dev": "node --experimental-strip-types src/main.ts",
+    "start": "node --experimental-strip-types src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
+    "test": "vitest run --environment node --pool threads",
+    "config:check": "node --experimental-strip-types src/config/check-environment.ts",
+    "db:migrate": "node-pg-migrate up --config-file migration.config.json --envPath ../../config/env/.env.local.example",
+    "db:migrate:test": "node-pg-migrate up --config-file migration.config.json --envPath ../../config/env/.env.test.example",
+    "db:migrate:down": "node-pg-migrate down 1 --config-file migration.config.json --envPath ../../config/env/.env.local.example",
+    "db:migrate:create": "node-pg-migrate create --config-file migration.config.json --migration-file-language sql",
+    "check:migrations": "node ../../scripts/check-database-migrations.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.20.0",
+    "pino": "^10.3.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.0",
+    "node-pg-migrate": "^8.0.4",
+    "supertest": "^7.2.2"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@znkfxt/web-widget",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Embeddable website and H5 customer service widget workspace.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
+    "test": "vitest run --environment jsdom --pool threads"
+  }
+}

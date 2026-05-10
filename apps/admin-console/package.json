@@ -1,0 +1,9 @@
+{
+  "name": "@znkfxt/admin-console",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Admin console workspace for knowledge base, accounts, records, and reports.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  }
+}

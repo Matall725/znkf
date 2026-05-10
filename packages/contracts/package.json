@@ -1,0 +1,14 @@
+{
+  "name": "@znkfxt/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared API contracts, enums, and TypeScript types workspace.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  }
+}
