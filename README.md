@@ -13,9 +13,6 @@
 - `docs`：工程说明文档。
 - `memory`：实施计划、设计、技术栈、进度与架构记录。
 
-## 申请材料
-
-- `docs/mimo-application.md`：MiMo 百万亿计划项目说明、当前能力、Credits 使用计划和演示接口。
 
 ## 当前约束
 
