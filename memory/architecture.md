@@ -6,7 +6,7 @@
 
 | 路径 | 职责 | 当前状态 |
 | --- | --- | --- |
-| `README.md` | 仓库入口说明，描述工作区划分、当前约束、已具备的基础能力和文档位置。 | 步骤 15 更新 |
+| `README.md` | 仓库入口说明，描述工作区划分、当前约束、已具备的基础能力、申请材料和文档位置。 | 申请演示补强更新 |
 | `package.json` | npm workspaces 根配置、统一校验脚本、API 启动脚本、TypeScript、格式检查、测试、环境配置校验、模块边界检查、本地服务配置检查和数据库迁移脚本入口。 | 步骤 12 更新 |
 | `package-lock.json` | npm 依赖锁文件，锁定 TypeScript、Prettier、Vitest、jsdom、dotenv、zod、express、pino、ioredis、pg、node-pg-migrate、supertest、bcryptjs、jsonwebtoken、Node 类型等依赖版本及 workspace 依赖图。 | 步骤 15 更新 |
 | `.editorconfig` | 编辑器基础风格规则，统一 UTF-8、LF、2 空格缩进和末尾换行。 | 步骤 2 新增 |
@@ -22,10 +22,12 @@
 | `e2e/tests/health.test.ts` | 端到端测试入口健康用例，验证 E2E 测试套件可被根脚本执行。 | 步骤 3 新增 |
 | `docs/environment.md` | 环境变量规范文档，说明必填项、示例文件和校验命令。 | 步骤 4 新增 |
 | `docs/database-migrations.md` | 数据库迁移机制文档，记录 `node-pg-migrate` 规则、命令、schema、基础迁移、账号角色、会话消息、知识库、评价和审计迁移。 | 步骤 11 更新 |
+| `docs/mimo-application.md` | MiMo 百万亿计划项目说明，记录项目简介、当前能力、Credits 使用计划、证明材料清单和演示接口。 | 申请演示补强新增 |
 | `docs/module-boundaries.md` | 后端模块和前端应用边界检查清单，定义每个模块唯一主职责。 | 步骤 5 新增 |
 | `scripts/check-module-boundaries.mjs` | 模块边界文档检查脚本，验证必需模块条目完整且没有万能模块条目。 | 步骤 5 新增 |
 | `scripts/check-local-services.mjs` | 本地服务编排静态检查脚本，验证 Docker Compose 与 Nginx 配置包含必需服务、healthcheck、依赖关系和静态路由。 | 步骤 6 新增 |
 | `scripts/check-database-migrations.mjs` | 数据库迁移配置静态检查脚本，验证迁移工具依赖、脚本、配置和 SQL 迁移文件完整性，当前覆盖基础、账号角色、会话消息、知识库、评价和审计迁移。 | 步骤 11 更新 |
+| `scripts/run-web-widget-tests.mjs` | web-widget 测试启动脚本，清理 Vitest 缓存并固定 `INIT_CWD`，避免全量测试在沙箱路径映射下读取原始 D 盘测试路径。 | 申请演示补强新增 |
 | `infra/local/README.md` | 本地基础服务说明，记录 PostgreSQL、Redis、API、worker 和静态服务的本地启动方式与当前步骤边界。 | 步骤 6 新增 |
 | `infra/local/nginx.conf` | 本地前端静态服务 Nginx 配置，后续用于暴露 `web-widget`、`agent-console` 和 `admin-console` 构建产物。 | 步骤 6 新增 |
 | `apps/api` | 后端 API 服务工作区，后续承载模块化单体后端能力；当前已包含基础 HTTP 健康检查入口。 | 步骤 12 更新 |
@@ -49,10 +51,11 @@
 | 路径 | 职责 | 当前状态 |
 | --- | --- | --- |
 | `apps/api/tsconfig.json` | 后端服务工作区 TypeScript 配置，继承根严格配置。 | 步骤 2 新增 |
-| `apps/api/src/index.ts` | 后端服务编译入口，当前导出后台登录、健康检查、统一错误响应、请求日志/关联标识和 API 服务创建入口。 | 步骤 15 更新 |
+| `apps/api/src/index.ts` | 后端服务编译入口，当前导出后台登录、健康检查、统一错误响应、请求日志/关联标识、知识库管理、最小知识问答和 API 服务创建入口。 | 申请演示补强更新 |
 | `apps/api/src/main.ts` | API 进程启动入口，创建 HTTP 服务并监听 `PORT`，默认端口为 `3000`。 | 步骤 12 新增 |
-| `apps/api/src/server.ts` | API HTTP 应用创建入口，装配请求关联上下文、请求日志、JSON 解析、健康检查路由、后台登录路由、可测试扩展路由、404 处理和统一错误处理中间件。 | 步骤 15 更新 |
+| `apps/api/src/server.ts` | API HTTP 应用创建入口，装配请求关联上下文、请求日志、JSON 解析、健康检查、后台登录、最小知识问答、知识库管理、可测试扩展路由、404 处理和统一错误处理中间件。 | 申请演示补强更新 |
 | `apps/web-widget/tsconfig.json` | 客服组件工作区 TypeScript 配置，继承根严格配置并启用 React JSX。 | 步骤 2 新增 |
+| `apps/web-widget/package.json` | 客服组件工作区包配置，当前测试脚本让 Vitest 在工作区内自动发现测试文件，避免沙箱路径映射导致的显式文件路径失效。 | 申请演示补强更新 |
 | `apps/web-widget/src/index.ts` | 客服组件编译入口占位，仅用于空项目类型检查，不包含业务逻辑。 | 步骤 2 新增 |
 | `apps/agent-console/tsconfig.json` | 坐席工作台 TypeScript 配置，继承根严格配置并启用 React JSX。 | 步骤 2 新增 |
 | `apps/agent-console/src/index.ts` | 坐席工作台编译入口占位，仅用于空项目类型检查，不包含业务逻辑。 | 步骤 2 新增 |
@@ -173,15 +176,70 @@
 | --- | --- | --- |
 | `apps/api/src/auth/account.repository.ts` | 后台登录账号仓储，使用外部依赖 `pg` 从 `app.accounts`、`app.account_roles` 和 `app.roles` 读取真实账号、密码哈希、启用状态和角色。 | 步骤 15 新增 |
 | `apps/api/src/auth/password-verifier.ts` | 密码校验适配入口，使用外部依赖 `bcryptjs` 对明文密码和 bcrypt 哈希执行真实校验。 | 步骤 15 新增 |
-| `apps/api/src/auth/access-token.ts` | 访问令牌签发入口，使用外部依赖 `jsonwebtoken` 签发 Bearer JWT；通过 Node `createRequire` 加载 CommonJS 包以兼容真实运行入口。 | 步骤 15 新增 |
+| `apps/api/src/auth/access-token.ts` | 访问令牌签发与校验入口，使用外部依赖 `jsonwebtoken` 签发并验证 Bearer JWT；通过 Node `createRequire` 加载 CommonJS 包以兼容真实运行入口，并复用 `zod` 校验令牌载荷结构。 | 步骤 16 更新 |
+| `apps/api/src/auth/authenticated-account.ts` | 当前后台账号请求上下文入口，通过 Express Request 扩展保存已认证账号，供后续业务路由和权限中间件读取。 | 步骤 16 新增 |
+| `apps/api/src/auth/auth.middleware.ts` | Bearer 认证中间件，解析 `Authorization` 请求头并调用真实 JWT 校验器，将认证账号写入请求上下文。 | 步骤 16 新增 |
+| `apps/api/src/auth/permissions.ts` | RBAC 权限策略入口，按后台角色映射账号管理、知识库、会话处理、会话查看和指标查看权限，并提供权限校验中间件。 | 步骤 16 新增 |
 | `apps/api/src/auth/auth.service.ts` | 后台登录编排服务，负责参数检查、账号查询、密码校验、禁用账号拦截、角色检查和令牌响应组装。 | 步骤 15 新增 |
 | `apps/api/src/auth/auth.router.ts` | Express 后台登录路由，暴露 `POST /api/auth/login` 并复用统一错误响应。 | 步骤 15 新增 |
 | `apps/api/tests/auth-login.test.ts` | 后台登录接口测试，覆盖正确账号登录、错误密码失败和禁用账号失败，并验证 JWT 可由真实依赖校验。 | 步骤 15 新增 |
+| `apps/api/tests/rbac.test.ts` | 角色权限校验测试，使用真实 `jsonwebtoken` 签发与校验 JWT，通过测试扩展路由验证坐席不能编辑知识库、知识库运营可以编辑知识库、未登录访问受保护路由失败以及坐席可处理会话。 | 步骤 16 新增 |
 
 后台登录边界：
 - 密码哈希算法来自外部依赖 `bcryptjs`，JWT 能力来自外部依赖 `jsonwebtoken`，数据库查询来自外部依赖 `pg`，HTTP 路由来自外部依赖 `express`。
 - 当前项目只编排登录流程和输入输出适配，不实现密码算法、JWT 算法、HTTP 框架或数据库客户端内部逻辑。
-- 登录接口只覆盖后台账号获取访问令牌；JWT 解析中间件、当前用户上下文和 RBAC 权限策略属于步骤 16 及后续实现。
+- 登录接口只覆盖后台账号获取访问令牌；步骤 16 已补齐 JWT 解析中间件、当前用户上下文和 RBAC 权限策略。
+- 当前 RBAC 只提供认证与授权胶水能力，未提前实现知识库 CRUD、坐席接入或管理后台业务接口。
+
+## 知识分类管理入口
+
+| 路径 | 职责 | 当前状态 |
+| --- | --- | --- |
+| `apps/api/src/knowledge/category.repository.ts` | 知识分类 PostgreSQL 仓储，使用外部依赖 `pg` 直接读写 `app.knowledge_categories`，覆盖创建、编辑、停用、按 ID 查询和按状态列表查询。 | 步骤 17 新增 |
+| `apps/api/src/knowledge/category.service.ts` | 知识分类编排服务，负责分类创建、编辑、查询、停用、slug 冲突归一化，以及校验分类是否可用于新知识条目。 | 步骤 17 新增 |
+| `apps/api/src/knowledge/category.router.ts` | Express 知识分类路由，暴露 `GET/POST /api/admin/knowledge/categories`、`PUT /api/admin/knowledge/categories/:id` 和 `POST /api/admin/knowledge/categories/:id/disable`，并复用 Bearer 认证与 RBAC 权限中间件。 | 步骤 17 新增 |
+| `apps/api/tests/knowledge-category.test.ts` | 知识分类接口测试，覆盖创建后查询、编辑、停用后不再出现在启用分类查询中、禁用分类不能用于新知识条目、重复 slug 冲突和权限拒绝。 | 步骤 17 新增 |
+
+知识分类管理边界：
+
+- 数据库读写能力来自外部依赖 `pg`，HTTP 路由能力来自外部依赖 `express`，请求校验来自外部依赖 `zod`，认证与权限复用步骤 16 的真实 JWT 与 RBAC 中间件。
+- 当前项目只编排分类管理流程和输入输出适配，不实现数据库客户端、HTTP 框架、JWT 算法或业务检索算法。
+- 步骤 17 只实现知识分类管理；知识条目创建已在步骤 18 实现，编辑已在步骤 19 实现，启停、查询、导入导出和检索仍按后续步骤推进。
+
+## 知识条目管理入口
+
+| 路径 | 职责 | 当前状态 |
+| --- | --- | --- |
+| `apps/api/src/knowledge/article.repository.ts` | 知识条目 PostgreSQL 仓储，使用外部依赖 `pg` 写入和更新 `app.knowledge_articles`、`app.knowledge_tags` 与 `app.knowledge_article_tags`，创建和编辑时维护标签关联，并为最小问答闭环提供启用知识检索。 | 申请演示补强更新 |
+| `apps/api/src/knowledge/article.service.ts` | 知识条目编排服务，负责创建/编辑输入归一化、分类可用性复用校验、文章仓储调用和审计写入。 | 步骤 19 更新 |
+| `apps/api/src/knowledge/article.router.ts` | Express 知识条目路由，暴露 `POST /api/admin/knowledge/articles` 和 `PUT /api/admin/knowledge/articles/:id`，并复用 Bearer 认证与 RBAC 权限中间件。 | 步骤 19 更新 |
+| `apps/api/src/audit/audit.repository.ts` | 审计 PostgreSQL 仓储，使用外部依赖 `pg` 写入 `app.audit_logs`，当前接入知识条目创建与编辑流程。 | 步骤 19 更新 |
+| `apps/api/tests/knowledge-article-create.test.ts` | 知识条目接口测试，覆盖创建、编辑、必填校验、停用分类拒绝、审计记录和权限拒绝。 | 步骤 19 更新 |
+
+知识条目创建与编辑边界：
+
+- `POST /api/admin/knowledge/articles` 暴露后台知识条目创建入口，受 Bearer JWT 与 `knowledge:write` 权限保护。
+- `PUT /api/admin/knowledge/articles/:id` 暴露后台知识条目编辑入口，受 Bearer JWT 与 `knowledge:write` 权限保护。
+- 创建请求支持 FAQ/文档类型、标题、正文、分类、关键词、标签和初始状态；编辑请求支持修改标题、正文、分类、关键词、标签和状态。
+- 分类可用性复用 `KnowledgeCategoryService.ensureCategoryCanBeUsedForNewArticle`，不重新实现分类存在性或启停状态判断。
+- 生产路径通过成熟外部依赖 `pg` 写入和更新 `app.knowledge_articles`、`app.knowledge_tags`、`app.knowledge_article_tags` 和 `app.audit_logs`；HTTP 路由来自 `express`，输入校验来自 `zod`，JWT 校验来自 `jsonwebtoken`。
+- 当前项目只编排请求校验、分类可用性检查、文章落库/更新、标签关联替换和审计写入调用，不实现数据库客户端、HTTP 框架、JWT 算法、向量化或大模型回答生成。
+- 本步骤不实现知识条目启停专用入口、后台列表查询、删除、导入导出、全文检索或向量检索；这些仍按步骤 20 及后续步骤推进。
+
+## 最小知识问答入口
+
+| 路径 | 职责 | 当前状态 |
+| --- | --- | --- |
+| `apps/api/src/knowledge/answer.service.ts` | 演示级知识问答编排服务，修剪访客问题、拦截订单/物流/账号等具体业务数据意图、检索启用知识条目、选择最佳知识并返回答案或转人工建议。 | 申请演示补强新增 |
+| `apps/api/src/knowledge/answer.router.ts` | Express 最小知识问答路由，暴露 `POST /api/knowledge/answer`，输入为 `question`，输出包含答案、命中状态、是否建议转人工和来源知识条目。 | 申请演示补强新增 |
+| `apps/api/tests/knowledge-answer.test.ts` | 最小知识问答接口测试，覆盖启用知识命中、未命中兜底、敏感业务数据不编造答案和空问题校验。 | 申请演示补强新增 |
+
+最小知识问答边界：
+
+- 当前问答闭环用于申请演示和后续大模型接入前的可验证路径，只基于启用知识条目的标题、正文、关键词和标签做轻量匹配。
+- 命中知识时直接返回知识条目正文，不生成超出知识库的业务结论。
+- 未命中知识或涉及订单、物流、账号等具体业务数据时返回转人工建议。
+- 该入口不创建会话、不保存消息、不执行向量检索、不调用真实大模型；完整会话、消息、AI 编排和转人工流程仍按实施计划后续步骤推进。
 
 ## 数据库迁移入口
 
@@ -211,12 +269,12 @@
 
 | 路径 | 职责 | 当前状态 |
 | --- | --- | --- |
-| `packages/contracts/src/auth.ts` | 共享账号状态、后台角色代码和后台登录响应契约，当前包含 `enabled`、`disabled`、`admin`、`knowledge_operator`、`agent`、`LoginRequest`、`AuthenticatedAccount` 和 `LoginResponse`。 | 步骤 15 更新 |
-| `packages/contracts/src/audit.ts` | 共享审计契约，当前包含审计操作者角色、知识条目新增/编辑/启停和坐席结束会话动作、审计目标类型。 | 步骤 11 新增 |
+| `packages/contracts/src/auth.ts` | 共享账号状态、后台角色代码、后台权限代码和后台登录响应契约，当前包含 `enabled`、`disabled`、`admin`、`knowledge_operator`、`agent`、`account:manage`、`knowledge:read`、`knowledge:write`、`conversation:read`、`conversation:handle`、`metrics:read`、`LoginRequest`、`AuthenticatedAccount` 和 `LoginResponse`。 | 步骤 16 更新 |
+| `packages/contracts/src/audit.ts` | 共享审计契约，当前包含审计操作者角色、知识条目新增/编辑/启停和坐席结束会话动作、审计目标类型，以及审计记录实体。 | 步骤 18 更新 |
 | `packages/contracts/src/conversation.ts` | 共享会话状态、来源、消息发送者类型和消息类型契约，包含用户确认新增的 `handoff_pending_confirmation` 状态。 | 步骤 9 新增 |
 | `packages/contracts/src/error.ts` | 共享错误响应契约，定义统一错误码和带可选 `requestId` 的 `ApiErrorResponse` 结构。 | 步骤 14 更新 |
 | `packages/contracts/src/feedback.ts` | 共享评价契约，当前包含 1 到 5 分满意度评分范围。 | 步骤 11 新增 |
-| `packages/contracts/src/knowledge.ts` | 共享知识库契约，当前包含知识分类启停状态、FAQ/文档型知识类型和草稿/启用/停用状态。 | 步骤 10 新增 |
+| `packages/contracts/src/knowledge.ts` | 共享知识库契约，当前包含知识分类实体、分类创建/编辑/列表响应契约、知识分类启停状态、FAQ/文档型知识类型、草稿/启用/停用状态、知识条目实体、知识条目创建/编辑请求，以及最小知识问答请求和响应契约。 | 申请演示补强更新 |
 | `packages/contracts/src/index.ts` | 共享契约包导出入口，当前导出账号、角色、会话、消息、知识库、评价、审计和错误响应契约。 | 步骤 13 更新 |
 
 账号与角色数据边界：
@@ -233,7 +291,7 @@
 
 知识库数据边界：
 
-- `knowledge_categories`、`knowledge_tags`、`knowledge_articles` 和 `knowledge_article_tags` 归属后端 `knowledge` 模块的数据结构。
+- `knowledge_categories`、`knowledge_tags`、`knowledge_articles` 和 `knowledge_article_tags` 归属后端 `knowledge` 模块的数据结构；知识条目创建和编辑已通过 `pg` 生产仓储写入和更新这些表。
 - 可用知识过滤以 `status = 'enabled'` 且 `deleted_at IS NULL` 为基础；具体检索、排序、向量化和 AI 编排不在步骤 10 实现。
 - `deleted_at` 只为后续删除知识能力提供数据基础；当前未实现知识删除接口、导入导出或后台知识管理页面。
 
@@ -241,7 +299,7 @@
 
 - `satisfaction_ratings` 归属后端 `metrics` 模块的数据结构，保存会话单次满意度评分和可选文字反馈，后续用于满意度统计与会话详情展示。
 - `audit_logs` 归属后端 `audit` 模块的数据结构，保存操作者、动作、目标和 JSON 元数据；当前动作范围覆盖知识条目新增/编辑/启停和坐席结束会话。
-- 本步骤只提供评价与审计落库结构，不实现评价提交接口、审计写入服务、知识状态变更业务逻辑或坐席结束会话业务逻辑。
+- 审计写入生产仓储已在步骤 18 接入知识条目创建流程，并在步骤 19 接入知识条目编辑流程；评价提交接口、知识启停审计和坐席结束会话审计仍按后续步骤推进。
 
 ## 已确认架构决策
 
@@ -256,4 +314,4 @@
 - 后端业务能力后续集中在 `apps/api`，但必须按会话、消息、知识库、AI 编排、检索、转人工、坐席、权限、报表和审计拆分模块。
 - 访客端、坐席端和管理后台分别位于独立应用工作区，避免前端能力混在单一页面或单一应用中。
 - 共享类型和状态枚举后续进入 `packages/contracts`，共享 UI 进入 `packages/shared-ui`。
-- 当前已建立统一 TypeScript 严格模式、格式化规则、基础测试入口、环境配置校验、模块边界检查清单、本地基础服务编排、数据库迁移机制、账号/角色/会话/消息/知识库/评价/审计基础数据结构、后端健康检查入口、统一错误响应、请求关联日志以及后台登录；仍未实现客服业务逻辑、业务接口、通用数据库访问层、Redis 业务队列、JWT 解析中间件、RBAC 或状态机。
+- 当前已建立统一 TypeScript 严格模式、格式化规则、基础测试入口、环境配置校验、模块边界检查清单、本地基础服务编排、数据库迁移机制、账号/角色/会话/消息/知识库/评价/审计基础数据结构、后端健康检查入口、统一错误响应、请求关联日志、后台登录、RBAC 权限校验、知识分类管理、知识条目创建/编辑以及最小知识问答；仍未实现客服会话业务逻辑、知识条目启停/查询、通用数据库访问层、Redis 业务队列或状态机。

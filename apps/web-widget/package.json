@@ -5,6 +5,6 @@
   "description": "Embeddable website and H5 customer service widget workspace.",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
-    "test": "vitest run tests/health.test.ts --environment jsdom --pool threads"
+    "test": "vitest run --environment jsdom --pool threads"
   }
 }

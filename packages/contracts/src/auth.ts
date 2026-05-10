@@ -4,6 +4,16 @@ export type AccountStatus = (typeof accountStatuses)[number];
 export const backendRoleCodes = ['admin', 'knowledge_operator', 'agent'] as const;
 export type BackendRoleCode = (typeof backendRoleCodes)[number];
 
+export const backendPermissions = [
+  'account:manage',
+  'knowledge:read',
+  'knowledge:write',
+  'conversation:read',
+  'conversation:handle',
+  'metrics:read',
+] as const;
+export type BackendPermission = (typeof backendPermissions)[number];
+
 export interface LoginRequest {
   loginName: string;
   password: string;

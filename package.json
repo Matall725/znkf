@@ -15,7 +15,7 @@
     "start:api": "npm --workspace @znkfxt/api run start",
     "test": "npm run test:api && npm run test:web-widget && npm run test:e2e",
     "test:api": "npm --workspace @znkfxt/api run test",
-    "test:web-widget": "npm --workspace @znkfxt/web-widget run test",
+    "test:web-widget": "node scripts/run-web-widget-tests.mjs",
     "test:e2e": "vitest run e2e/tests/health.test.ts --environment node --pool threads",
     "config:check:local": "npm --workspace @znkfxt/api run config:check -- --env-file ../../config/env/.env.local.example",
     "config:check:test": "npm --workspace @znkfxt/api run config:check -- --env-file ../../config/env/.env.test.example",

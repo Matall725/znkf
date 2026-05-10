@@ -12,3 +12,14 @@ export type AuditAction = (typeof auditActions)[number];
 
 export const auditTargetTypes = ['knowledge_article', 'conversation'] as const;
 export type AuditTargetType = (typeof auditTargetTypes)[number];
+
+export interface AuditLog {
+  id: string;
+  actorAccountId: string | null;
+  actorRoleCode: AuditActorRoleCode | null;
+  action: AuditAction;
+  targetType: AuditTargetType;
+  targetId: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}

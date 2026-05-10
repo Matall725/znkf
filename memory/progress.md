@@ -502,6 +502,189 @@
   - 已运行内联 Node 加载 `JwtAccessTokenIssuer` 并签发测试 JWT，确认真实 Node `--experimental-strip-types` 入口可加载 `jsonwebtoken`。
   - 已运行内联 Node 加载 `createApiServer()`，确认服务器模块在真实 Node `--experimental-strip-types` 入口可加载。
 
+## 步骤 16：实现角色权限校验
+
+- 状态：已完成，按用户最新要求继续后续步骤，不等待人工测试确认。
+- 实施内容：
+  - 更新 `packages/contracts/src/auth.ts`，新增后台权限代码契约：`account:manage`、`knowledge:read`、`knowledge:write`、`conversation:read`、`conversation:handle` 和 `metrics:read`。
+  - 更新 `apps/api/src/auth/access-token.ts`，在 JWT 载荷中写入账号状态，并新增 `JwtAccessTokenVerifier`，通过外部依赖 `jsonwebtoken` 验证 Bearer JWT，通过外部依赖 `zod` 校验令牌载荷结构。
+  - 新增 `apps/api/src/auth/authenticated-account.ts`，通过 Express Request 扩展保存当前认证账号，供后续业务路由读取。
+  - 新增 `apps/api/src/auth/auth.middleware.ts`，实现 Bearer 认证中间件，解析 `Authorization` 请求头、调用真实 JWT 校验器并写入当前账号上下文。
+  - 新增 `apps/api/src/auth/permissions.ts`，实现 RBAC 权限映射与权限中间件：管理员拥有全部后台权限，知识库运营拥有知识库维护、会话查看和指标查看权限，坐席拥有会话处理权限。
+  - 更新 `apps/api/src/index.ts`，导出认证中间件、当前账号上下文和权限策略入口。
+  - 新增 `apps/api/tests/rbac.test.ts`，通过测试扩展路由验证坐席访问知识库编辑路由失败、知识库运营访问知识库编辑路由成功、未登录访问后台受保护路由失败、坐席访问会话处理路由成功，并验证管理员拥有全部后台权限。
+  - 更新 `README.md`、`apps/api/README.md` 和 `memory/architecture.md`，记录 RBAC 能力、外部依赖来源和当前边界。
+- 外部依赖标注：
+  - JWT 签发和校验能力来自成熟外部依赖 `jsonwebtoken`，当前项目只组装/解析请求并调用其真实实现，不实现 JWT 算法。
+  - JWT 载荷结构校验复用成熟外部依赖 `zod`，当前项目只定义 schema 和错误归一化。
+  - HTTP 中间件编排来自成熟外部依赖 `express`。
+  - 当前项目只编写认证上下文、角色权限映射和中间件胶水代码，不实现 HTTP 框架、JWT 库或业务接口内部逻辑。
+- 权限边界：
+  - `admin`：拥有 `account:manage`、`knowledge:read`、`knowledge:write`、`conversation:read`、`conversation:handle` 和 `metrics:read`。
+  - `knowledge_operator`：拥有 `knowledge:read`、`knowledge:write`、`conversation:read` 和 `metrics:read`。
+  - `agent`：拥有 `conversation:handle`。
+- 边界说明：
+  - 本步骤只实现 JWT 解析、当前账号上下文和 RBAC 权限校验。
+  - 未提前实现知识库分类管理、知识条目创建/编辑/启停/查询、坐席接入或会话处理业务接口；这些仍按步骤 17 及后续步骤推进。
+  - RBAC 测试中的知识库编辑和会话处理路由通过 `createApiServer` 的测试扩展路由挂载，只用于验证真实中间件，不作为生产占位接口暴露。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:api`，12 个 API 测试文件、39 个测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 已运行 `npm.cmd run test`，API、web-widget 和 E2E 健康测试全部通过。
+  - 首次运行 `npm.cmd run format:check` 时发现 3 个新增/修改文件需要格式化；已运行 `npm.cmd exec prettier -- --write apps/api/src/auth/access-token.ts apps/api/src/auth/authenticated-account.ts apps/api/tests/rbac.test.ts` 修复，并再次运行 `npm.cmd run format:check`，格式检查通过。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 已运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+  - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
+  - 已运行内联 Node `--experimental-strip-types` 签发并校验测试 JWT，确认真实 Node 入口可加载 `JwtAccessTokenIssuer` 和 `JwtAccessTokenVerifier` 并完成 `jsonwebtoken` 校验。
+
+## 步骤 17：实现知识分类管理
+
+- 状态：已完成，按用户最新要求继续后续步骤，不等待人工测试确认。
+- 实施内容：
+  - 更新 `packages/contracts/src/knowledge.ts`，新增 `KnowledgeCategory`、`CreateKnowledgeCategoryRequest`、`UpdateKnowledgeCategoryRequest` 和 `ListKnowledgeCategoriesResponse` 共享契约。
+  - 更新 `apps/api/src/auth/authenticated-account.ts`，新增 `requireAuthenticatedAccount`，供已通过认证和权限校验的业务路由读取当前账号。
+  - 新增 `apps/api/src/knowledge/category.repository.ts`，使用成熟外部依赖 `pg` 直接读写 `app.knowledge_categories`，覆盖分类创建、编辑、停用、按 ID 查询和按状态列表查询，并把 PostgreSQL slug 唯一约束冲突转换为明确仓储错误。
+  - 新增 `apps/api/src/knowledge/category.service.ts`，编排知识分类创建、编辑、查询、停用、slug 冲突归一化，以及 `ensureCategoryCanBeUsedForNewArticle`，确保停用分类不能作为后续新建知识条目的可选分类。
+  - 新增 `apps/api/src/knowledge/category.router.ts`，暴露知识分类管理 API：`GET /api/admin/knowledge/categories`、`POST /api/admin/knowledge/categories`、`PUT /api/admin/knowledge/categories/:id`、`POST /api/admin/knowledge/categories/:id/disable`。
+  - 更新 `apps/api/src/server.ts`，在运行时环境存在时装配真实 PostgreSQL 知识分类服务和 Bearer JWT 校验器；测试环境可显式注入服务和校验器。
+  - 更新 `apps/api/src/index.ts`，导出知识分类仓储、服务和路由入口。
+  - 新增 `apps/api/tests/knowledge-category.test.ts`，覆盖创建后查询、编辑、停用后不再出现在启用分类查询中、禁用分类不能用于新知识条目、重复 slug 冲突、坐席无权访问和未登录访问失败。
+  - 更新 `README.md`、`apps/api/README.md` 和 `memory/architecture.md`，记录当前分类管理能力、外部依赖来源和边界。
+- 外部依赖标注：
+  - 数据库读写能力来自成熟外部依赖 `pg`，当前项目只编写 SQL 调用和记录映射，不实现 PostgreSQL 客户端内部逻辑。
+  - HTTP 路由能力来自成熟外部依赖 `express`。
+  - 请求体验证来自成熟外部依赖 `zod`。
+  - Bearer JWT 校验来自成熟外部依赖 `jsonwebtoken`，并复用步骤 16 的认证与 RBAC 中间件。
+- 接口边界：
+  - `GET /api/admin/knowledge/categories`：查询分类，可用 `status=enabled|disabled` 过滤。
+  - `POST /api/admin/knowledge/categories`：创建分类，默认 `enabled`。
+  - `PUT /api/admin/knowledge/categories/:id`：编辑分类名称和 slug。
+  - `POST /api/admin/knowledge/categories/:id/disable`：停用分类，不修改历史知识条目。
+- 边界说明：
+  - 本步骤只实现知识分类管理。
+  - 未实现知识条目创建、编辑、启停、查询、导入导出、审计写入或检索；这些仍按步骤 18 及后续步骤推进。
+  - 当前环境没有正在运行的 PostgreSQL，因此无法执行真实数据库写入的端到端验证；生产代码路径已经使用 `pg` 仓储，接口测试通过仓储契约驱动服务和真实 Express/JWT/RBAC 中间件验证业务编排。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:api`，13 个 API 测试文件、44 个测试全部通过。
+  - 已运行 `npm.cmd run test`，API、web-widget 和 E2E 健康测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 已运行 `npm.cmd run format:check`，格式检查通过。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 已运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+  - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
+  - 并行验证过程中 `npm.cmd run test` 曾在沙箱复制路径下触发一次 web-widget 绝对路径解析失败；随后单独运行 `npm.cmd run test:web-widget`、`npm.cmd run test:e2e` 并再次运行 `npm.cmd run test` 均通过，确认不是本步骤代码失败。
+
+## 步骤 18：实现知识条目创建
+
+- 状态：已完成，按用户最新要求继续后续步骤，不等待人工测试确认。
+- 实施内容：
+  - 更新 `packages/contracts/src/knowledge.ts`，新增 `KnowledgeArticle` 和 `CreateKnowledgeArticleRequest` 共享契约，覆盖 FAQ/文档类型、标题、正文、分类、关键词、标签和草稿/启用/停用状态。
+  - 更新 `packages/contracts/src/audit.ts`，新增 `AuditLog` 共享审计记录实体。
+  - 新增 `apps/api/src/audit/audit.repository.ts`，使用成熟外部依赖 `pg` 写入 `app.audit_logs` 并映射真实审计记录。
+  - 新增 `apps/api/src/knowledge/article.repository.ts`，使用成熟外部依赖 `pg` 在事务中写入 `app.knowledge_articles`、`app.knowledge_tags` 和 `app.knowledge_article_tags`，不实现 PostgreSQL 客户端内部逻辑。
+  - 新增 `apps/api/src/knowledge/article.service.ts`，编排知识条目创建：修剪输入、复用分类可用性检查、调用文章仓储、写入 `knowledge_article_created` 审计记录。
+  - 新增 `apps/api/src/knowledge/article.router.ts`，暴露 `POST /api/admin/knowledge/articles`，复用 Bearer JWT 认证、RBAC `knowledge:write` 权限和 `zod` 请求体验证。
+  - 更新 `apps/api/src/server.ts`，在运行时环境存在时装配真实 PostgreSQL 知识条目服务；测试环境可显式注入服务和 JWT 校验器。
+  - 更新 `apps/api/src/index.ts`，导出审计仓储、知识条目仓储、服务和路由入口。
+  - 新增 `apps/api/tests/knowledge-article-create.test.ts`，覆盖合法数据创建、标题缺失失败、正文缺失失败、停用分类拒绝创建、坐席无权创建，以及创建成功后的审计记录存在。
+  - 更新 `README.md`、`apps/api/README.md` 和 `memory/architecture.md`，记录当前知识条目创建能力、外部依赖来源和边界。
+- 外部依赖标注：
+  - 数据库读写能力来自成熟外部依赖 `pg`，当前项目只编写 SQL 调用、事务编排和记录映射，不实现 PostgreSQL 客户端内部逻辑。
+  - HTTP 路由能力来自成熟外部依赖 `express`。
+  - 请求体验证来自成熟外部依赖 `zod`。
+  - Bearer JWT 校验来自成熟外部依赖 `jsonwebtoken`，并复用步骤 16 的认证与 RBAC 中间件。
+  - 分类状态判断复用步骤 17 的 `KnowledgeCategoryService.ensureCategoryCanBeUsedForNewArticle`，不在知识条目模块重写同类逻辑。
+- 接口边界：
+  - `POST /api/admin/knowledge/articles`：创建知识条目，支持 `articleType`、`title`、`content`、`categoryId`、`keywords`、`tagNames` 和 `status`。
+  - 标题和正文缺失或为空白时返回 `BAD_REQUEST`。
+  - 停用分类作为新条目分类时返回 `CONFLICT`。
+  - 创建成功后返回知识条目实体，并写入 `knowledge_article_created` 审计记录。
+- 边界说明：
+  - 本步骤只实现知识条目创建。
+  - 未实现知识条目编辑、启停、查询、导入导出、删除、检索、向量化或 AI 回答生成；这些仍按步骤 19 及后续步骤推进。
+  - 当前环境没有正在运行的 PostgreSQL，因此无法执行真实数据库写入的端到端验证；生产代码路径已经使用 `pg` 仓储，接口测试通过仓储契约驱动服务和真实 Express/JWT/RBAC 中间件验证业务编排。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:api`，14 个 API 测试文件、48 个测试全部通过。
+  - 已运行 `npm.cmd run test`，API、web-widget 和 E2E 测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 首次运行 `npm.cmd run format:check` 发现 `apps/api/src/audit/audit.repository.ts` 需要格式化；已运行 `npm.cmd exec prettier -- --write ...` 修复。
+  - 后续并行运行 `npm.cmd run format:check` 时曾触发一次 Prettier 对当前目录符号链接的异常；随后单独重跑 `npm.cmd run format:check` 通过，确认格式本身无问题。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 已运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+  - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
+  - 已运行 `git diff --check`，未发现空白错误；仅出现 Windows 换行提示。
+
+## 步骤 19：实现知识条目编辑
+
+- 状态：已完成，按用户最新要求继续后续步骤，不等待人工测试确认。
+- 实施内容：
+  - 更新 `packages/contracts/src/knowledge.ts`，新增 `UpdateKnowledgeArticleRequest` 共享契约，允许修改标题、正文、分类、关键词、标签和状态。
+  - 更新 `apps/api/src/knowledge/article.repository.ts`，在生产 `pg` 仓储中新增 `updateArticle`，通过事务更新 `app.knowledge_articles` 并按请求替换 `app.knowledge_article_tags` 关联。
+  - 更新 `apps/api/src/knowledge/article.service.ts`，新增知识条目编辑编排：校验至少一个可编辑字段、修剪标题/正文、归一化关键词/标签、复用分类可用性检查、处理不存在条目并写入 `knowledge_article_updated` 审计记录。
+  - 更新 `apps/api/src/knowledge/article.router.ts`，新增 `PUT /api/admin/knowledge/articles/:id`，复用 Bearer JWT 认证、RBAC `knowledge:write` 权限和 `zod` 请求体验证。
+  - 更新 `apps/api/tests/knowledge-article-create.test.ts`，新增编辑接口测试，覆盖编辑后返回内容与仓储结果一致、每次编辑生成审计记录、空编辑请求失败、停用分类拒绝和坐席无权编辑。
+  - 更新 `README.md`、`apps/api/README.md` 和 `memory/architecture.md`，记录当前知识条目编辑能力、外部依赖来源和边界。
+- 外部依赖标注：
+  - 数据库读写能力来自成熟外部依赖 `pg`，当前项目只编写 SQL 调用、事务编排和记录映射，不实现 PostgreSQL 客户端内部逻辑。
+  - HTTP 路由能力来自成熟外部依赖 `express`。
+  - 请求体验证来自成熟外部依赖 `zod`。
+  - Bearer JWT 校验来自成熟外部依赖 `jsonwebtoken`，并复用步骤 16 的认证与 RBAC 中间件。
+  - 分类存在性与启停状态判断继续复用步骤 17 的 `KnowledgeCategoryService.ensureCategoryCanBeUsedForNewArticle`，不在知识条目模块重写同类逻辑。
+- 接口边界：
+  - `PUT /api/admin/knowledge/articles/:id`：编辑知识条目，支持 `title`、`content`、`categoryId`、`keywords`、`tagNames` 和 `status`。
+  - 编辑请求至少需要一个可编辑字段。
+  - 标题或正文传入空白值时返回 `BAD_REQUEST`。
+  - 停用分类作为新分类时返回 `CONFLICT`。
+  - 不存在或已软删除的条目返回 `NOT_FOUND`。
+  - 编辑成功后返回更新后的知识条目实体，并写入 `knowledge_article_updated` 审计记录。
+- 边界说明：
+  - 本步骤只实现知识条目编辑。
+  - 未实现知识条目启停专用入口、列表查询、删除、导入导出、检索、向量化或 AI 回答生成；这些仍按步骤 20 及后续步骤推进。
+  - 当前环境没有正在运行的 PostgreSQL，因此无法执行真实数据库写入的端到端验证；生产代码路径已经使用 `pg` 仓储，接口测试通过仓储契约驱动服务和真实 Express/JWT/RBAC 中间件验证业务编排。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:api`，14 个 API 测试文件、51 个测试全部通过。
+  - 已运行 `npm.cmd run test`，API、web-widget 和 E2E 测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 首次运行 `npm.cmd run format:check` 发现 `apps/api/src/knowledge/article.service.ts` 需要格式化；已运行 `npm.cmd exec prettier -- --write ...` 修复。
+  - 再次运行 `npm.cmd run format:check`，格式检查通过。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 已运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+  - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
+  - 已运行 `git diff --check`，未发现空白错误；仅出现 Windows 换行提示。
+
+## 申请演示补强：最小知识问答闭环与材料整理
+
+- 状态：已完成，用于形成可申请、可证明、可演示的最小 AI 客服能力，不改变原实施计划下一步。
+- 实施内容：
+  - 更新 `packages/contracts/src/knowledge.ts`，新增 `KnowledgeAnswerRequest`、`KnowledgeAnswerSourceArticle` 和 `KnowledgeAnswerResponse` 共享契约。
+  - 更新 `apps/api/src/knowledge/article.repository.ts`，新增启用知识条目检索接口 `listAnswerableArticles`，生产路径仍使用外部依赖 `pg` 查询 PostgreSQL。
+  - 新增 `apps/api/src/knowledge/answer.service.ts`，实现演示级知识问答编排：问题修剪、敏感业务数据意图拦截、启用知识检索、最佳知识选择、命中回答和未命中转人工建议。
+  - 新增 `apps/api/src/knowledge/answer.router.ts`，暴露 `POST /api/knowledge/answer` 访客问答入口。
+  - 更新 `apps/api/src/server.ts` 和 `apps/api/src/index.ts`，装配并导出最小知识问答能力。
+  - 新增 `apps/api/tests/knowledge-answer.test.ts`，覆盖启用知识命中、未命中兜底、订单/物流等具体业务数据不编造答案和空问题校验。
+  - 更新根 `package.json`、`apps/web-widget/package.json` 并新增 `scripts/run-web-widget-tests.mjs`，修复全量测试中 web-widget 测试受沙箱路径映射影响的问题。
+  - 新增 `docs/mimo-application.md`，整理项目说明、当前能力、MiMo Credits 使用计划、证明材料清单和演示接口。
+  - 更新 `README.md`、`apps/api/README.md` 和 `memory/architecture.md`，记录当前可演示能力和边界。
+- 接口边界：
+  - `POST /api/knowledge/answer`：访客传入 `question`，系统只从启用知识条目中选择答案。
+  - 命中知识时返回 `answer`、`matched = true`、`needsHandoff = false` 和来源知识条目。
+  - 未命中知识时返回兜底提示，并标记 `needsHandoff = true`。
+  - 涉及订单、物流、账号等具体业务数据时不编造答案，直接建议人工客服核实。
+- 边界说明：
+  - 当前问答闭环是申请演示级能力，只做轻量关键词/文本匹配。
+  - 未接入真实大模型、向量检索、会话创建、消息归档、转人工队列或坐席处理流程。
+  - 完整会话与转人工闭环仍按原计划后续步骤推进。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:api`，15 个 API 测试文件、55 个测试全部通过。
+  - 已运行 `npm.cmd run test:web-widget`，1 个 web-widget 测试文件、1 个测试通过。
+  - 已运行 `npm.cmd run test`，API、web-widget 和 E2E 测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 已运行 `npm.cmd run format:check`，格式检查通过。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 已运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+  - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
+  - 已运行 `git diff --check`，未发现空白错误；仅出现 Windows 换行提示。
+
 ## 下一步
 
-继续进入步骤 16：实现角色权限校验。
+继续进入步骤 20：实现知识条目启停。
