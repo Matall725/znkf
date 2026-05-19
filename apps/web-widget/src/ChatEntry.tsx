@@ -1,10 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChatPanel } from './ChatPanel';
+import { useConversation } from './hooks/useConversation';
 
-export function ChatEntry() {
+export interface ChatEntryOptions {
+  apiBaseUrl: string;
+}
+
+export function ChatEntry({ apiBaseUrl }: ChatEntryOptions) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { state: conversationState, initialize, messages, sendMessage, sending } = useConversation({ apiBaseUrl });
+
+  // Initialize conversation when panel opens
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+    initialize();
+  }, [initialize]);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -36,13 +52,19 @@ export function ChatEntry() {
     >
       {open && (
         <div ref={panelRef}>
-          <ChatPanel onClose={() => setOpen(false)} />
+          <ChatPanel onClose={handleClose} conversationState={conversationState} messages={messages} onSend={sendMessage} sending={sending} />
         </div>
       )}
       <button
         ref={buttonRef}
         data-testid="chat-toggle-btn"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (open) {
+            handleClose();
+          } else {
+            handleOpen();
+          }
+        }}
         style={{
           width: 56,
           height: 56,

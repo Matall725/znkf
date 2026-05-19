@@ -818,6 +818,37 @@
   - 已运行 `npm.cmd run format:check`，格式检查通过。
   - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
 
+## 步骤 40：实现访客会话初始化
+
+- 状态：已完成。
+- 实施内容：
+  - 新增 `src/visitor-id.ts`：管理访客匿名标识，使用 `crypto.randomUUID()` 生成并通过 localStorage 持久化；先 `getOrCreateVisitorId()`，可 `clearVisitorId()`。
+  - 新增 `src/api-client.ts`：封装访问客服 API 的 HTTP 客户端（`ApiClient` 类），包含 `createOrReuseConversation`、`sendMessage`、`listMessages`、`closeConversation`、`requestHandoff` 方法；`ApiError` 异常类。
+  - 新增 `src/hooks/useConversation.ts`：React Hook，管理会话生命周期（idle → loading → ready/error），在 `initialize()` 调用时自动读取 visitorId 并调用 API 创建或复用会话。
+  - 更新 `ChatEntry.tsx`：新增 `apiBaseUrl` 属性，接入 `useConversation` hook，面板打开时自动初始化会话。
+  - 更新 `ChatPanel.tsx`：新增 `conversationState` 属性，展示 loading（连接中）、ready（开始对话吧 👋）、error（错误信息）三种状态。
+  - 更新 `index.ts`：导出新模块。
+- 边界说明：
+  - 当前只初始化会话，不发送消息（属于步骤 41）。
+  - 访客标识使用 UUID v4，通过 `crypto.randomUUID()` 生成，兼容现代浏览器和 jsdom。
+  - API 客户端只实现必要方法，未包含请求重试、超时等高级能力。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:web-widget`，4 个测试文件、15 个测试全部通过（新增 visitor-id.test.ts 4 个 + conversation-init.test.tsx 4 个）。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+
+## 步骤 41：实现访客消息发送与展示
+
+- 状态：已完成。
+- 实施内容：
+  - 更新 `useConversation.ts`：新增 `messages` 状态管理、`sendMessage` 发送方法、`sending` 状态标志、`loadHistory` 历史加载方法；初始化成功后自动拉取已有消息。
+  - 更新 `ChatPanel.tsx`：接收 `messages`、`onSend`、`sending` 属性；输入框和发送按钮在 `ready` 状态下启用；支持 Enter 键发送；防止空消息提交；展示消息气泡（访客蓝色右对齐、机器人灰色左对齐、系统灰色居中斜体）；自动滚动到最新消息。
+  - 更新 `ChatEntry.tsx`：传递 `messages`、`sendMessage`、`sending` 属性到 ChatPanel。
+  - 更新 `chat-entry.test.tsx`：新增消息发送（按钮点击、Enter 键、空消息）、消息展示（访客+机器人、系统消息）、发送中状态共 6 个测试。
+- 新增文件：无（仅更新现有文件）。
+- 我执行的验证：
+  - 已运行 web-widget 测试，4 个测试文件、21 个测试全部通过。
+  - 已运行 `typecheck`，类型检查通过。
+
 ## 下一步
 
-继续进入步骤 40：实现访客消息发送与展示。
+继续进入步骤 42：实现前端访客会话列表与历史消息加载。

@@ -1,8 +1,83 @@
+import { useEffect, useRef, useState } from 'react';
+import type { ConversationMessage } from '@znkfxt/contracts';
+import type { ConversationState } from './hooks/useConversation';
+
 interface ChatPanelProps {
   onClose: () => void;
+  conversationState: ConversationState;
+  messages: ConversationMessage[];
+  sending: boolean;
+  onSend: (content: string) => void;
+  onLoadHistory?: () => void;
 }
 
-export function ChatPanel({ onClose }: ChatPanelProps) {
+export function ChatPanel({ onClose, conversationState, messages = [], sending = false, onSend = () => {} }: ChatPanelProps) {
+  const [inputValue, setInputValue] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isReady = conversationState.kind === 'ready';
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const handleSend = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setInputValue('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSend();
+    }
+  };
+
+  const bubbleStyle = (senderType: string): React.CSSProperties => {
+    if (senderType === 'visitor') {
+      return {
+        alignSelf: 'flex-end',
+        background: '#1d4ed8',
+        color: '#fff',
+        borderRadius: '12px 12px 4px 12px',
+        maxWidth: '80%',
+        padding: '8px 12px',
+        fontSize: 14,
+        lineHeight: 1.4,
+        wordBreak: 'break-word',
+      };
+    }
+    if (senderType === 'bot') {
+      return {
+        alignSelf: 'flex-start',
+        background: '#f3f4f6',
+        color: '#1f2937',
+        borderRadius: '12px 12px 12px 4px',
+        maxWidth: '80%',
+        padding: '8px 12px',
+        fontSize: 14,
+        lineHeight: 1.4,
+        wordBreak: 'break-word',
+      };
+    }
+    // system
+    return {
+      alignSelf: 'center',
+      background: 'transparent',
+      color: '#9ca3af',
+      fontStyle: 'italic',
+      fontSize: 12,
+      padding: '4px 8px',
+      textAlign: 'center',
+    };
+  };
+
+  const showWelcome = (messages ?? []).length === 0 && isReady;
+
   return (
     <div
       data-testid="chat-panel"
@@ -68,7 +143,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         </p>
       </div>
 
-      {/* Messages area (placeholder) */}
+      {/* Messages area */}
       <div
         data-testid="chat-messages-area"
         style={{
@@ -76,14 +151,41 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           padding: 16,
           overflowY: 'auto',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 8,
         }}
       >
-        <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>开始对话吧 👋</p>
+        {conversationState.kind === 'loading' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>连接中，请稍候...</p>
+          </div>
+        )}
+        {showWelcome && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>开始对话吧 👋</p>
+          </div>
+        )}
+        {conversationState.kind === 'error' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+            <p style={{ color: '#ef4444', fontSize: 13, margin: 0 }}>
+              {conversationState.message}
+            </p>
+          </div>
+        )}
+        {messages.map((msg) => (
+          <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', ...bubbleStyle(msg.senderType) }}>
+            {msg.content}
+          </div>
+        ))}
+        {sending && (
+          <div style={{ alignSelf: 'flex-start', color: '#9ca3af', fontSize: 12, padding: '4px 0' }}>
+            发送中...
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area (placeholder) */}
+      {/* Input area */}
       <div
         style={{
           padding: '10px 12px',
@@ -96,28 +198,32 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           data-testid="chat-input"
           type="text"
           placeholder="输入您的问题..."
-          disabled
+          value={inputValue}
+          disabled={!isReady}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
           style={{
             flex: 1,
             padding: '8px 12px',
-            border: '1px solid #d1d5db',
+            border: `1px solid ${isReady ? '#d1d5db' : '#e5e7eb'}`,
             borderRadius: 8,
             fontSize: 14,
             outline: 'none',
-            background: '#f9fafb',
-            color: '#9ca3af',
+            background: isReady ? '#fff' : '#f9fafb',
+            color: isReady ? '#1f2937' : '#9ca3af',
           }}
         />
         <button
-          disabled
+          disabled={!isReady}
+          onClick={handleSend}
           style={{
             padding: '8px 16px',
-            background: '#e5e7eb',
-            color: '#9ca3af',
+            background: isReady ? '#1d4ed8' : '#e5e7eb',
+            color: isReady ? '#fff' : '#9ca3af',
             border: 'none',
             borderRadius: 8,
             fontSize: 14,
-            cursor: 'not-allowed',
+            cursor: isReady ? 'pointer' : 'not-allowed',
           }}
         >
           发送
