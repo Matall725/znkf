@@ -794,6 +794,30 @@
   - 运行 `npm.cmd run check:boundaries`，模块边界检查通过。
   - 运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
 
+## 步骤 39：实现聊天入口 UI
+
+- 状态：已完成。
+- 实施内容：
+  - 安装 React 18、React DOM、@testing-library/react、@testing-library/user-event、@vitejs/plugin-react 到 web-widget 工作区。
+  - 新增 `apps/web-widget/src/ChatEntry.tsx`：浮动气泡按钮 + 展开/收起面板功能；点击气泡打开聊天面板，点击关闭按钮或面板外部区域收起。
+  - 新增 `apps/web-widget/src/ChatPanel.tsx`：聊天面板组件，包含智能客服标题栏、欢迎语区域、消息区域占位、输入框和发送按钮（当前均为禁用占位）。
+  - 新增 `apps/web-widget/src/index.ts`：导出 ChatEntry 和 ChatPanel。
+  - 新增 `apps/web-widget/vitest.config.ts`：配置 React 插件和 jsdom 环境。
+  - 新增 `apps/web-widget/tests/chat-entry.test.tsx`：6 个测试用例，覆盖面板渲染、入口按钮默认收起、点击展开/关闭、外部关闭、按钮再次点击切换。
+  - 更新 `scripts/run-web-widget-tests.mjs`：从仅运行单文件改为扫描 tests 目录下全部测试文件。
+  - 更新根 `tsconfig.json`：补充 `"jsx": "react-jsx"`。
+- 边界说明：
+  - 当前为纯静态 UI 组件，不包含后端 API 调用。
+  - 输入框和发送按钮均为 `disabled` 占位，输入发送功能属于步骤 40。
+  - 未包含附件、图片或富媒体能力（按计划只做文本客服）。
+  - 使用内联样式（inline styles），未引入 CSS 模块或 CSS-in-JS 方案。
+- 我执行的验证：
+  - 已运行 `npm.cmd run test:web-widget`，2 个 web-widget 测试文件、7 个测试全部通过。
+  - 已运行 `npm.cmd run test`，20 个测试文件、92 个测试全部通过。
+  - 已运行 `npm.cmd run typecheck`，类型检查通过。
+  - 已运行 `npm.cmd run format:check`，格式检查通过。
+  - 已运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+
 ## 下一步
 
-继续进入步骤 39：实现聊天入口 UI。
+继续进入步骤 40：实现访客消息发送与展示。

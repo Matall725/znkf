@@ -6,5 +6,17 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
     "test": "vitest run --environment jsdom --pool threads"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.2"
   }
 }

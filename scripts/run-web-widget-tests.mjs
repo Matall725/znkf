@@ -19,9 +19,9 @@ const result = spawnSync(
   [
     vitestEntrypoint,
     'run',
-    'apps/web-widget/tests/health.test.ts',
-    '--environment',
-    'jsdom',
+    '--config',
+    'apps/web-widget/vitest.config.ts',
+    'apps/web-widget/tests',
     '--pool',
     'threads',
   ],
