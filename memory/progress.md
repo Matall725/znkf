@@ -652,6 +652,40 @@
   - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
   - 已运行 `git diff --check`，未发现空白错误；仅出现 Windows 换行提示。
 
+## 步骤 20：实现知识条目启停
+
+- 状态：已完成（代码已在步骤 18-19 中一并实现，现补记文档）。
+- 实施内容：
+  - `KnowledgeArticleService.setArticleStatus(id, status, actor)` 已在 `article.service.ts` 中实现，支持 `enabled` 和 `disabled` 状态切换。
+  - `POST /api/admin/knowledge/articles/:id/enable` 和 `POST /api/admin/knowledge/articles/:id/disable` 路由已在 `article.router.ts` 中实现，复用 Bearer JWT 认证和 RBAC `knowledge:write` 权限。
+  - 启用条目出现在可检索列表中，停用条目不出现在可检索列表中；测试覆盖启用后可回答、禁用后不可回答的完整路径。
+  - 停用操作写入 `knowledge_article_disabled` 审计记录，启用操作写入 `knowledge_article_enabled` 审计记录。
+- 接口边界：
+  - `POST /api/admin/knowledge/articles/:id/enable`：将知识条目状态设为 `enabled`。
+  - `POST /api/admin/knowledge/articles/:id/disable`：将知识条目状态设为 `disabled`。
+  - 不存在或已软删除的条目返回 `NOT_FOUND`。
+- 我执行的验证：
+  - 运行 `npm.cmd run test:api`，15 个 API 测试文件、55 个测试全部通过，其中 `knowledge-article-create.test.ts` 包含启停专用测试和启停后问答可见性验证。
+  - 运行 `npm.cmd run typecheck`，类型检查通过。
+  - 运行 `npm.cmd run format:check`，格式检查通过。
+
+## 步骤 21：实现知识条目查询
+
+- 状态：已完成（代码已在步骤 18-19 中一并实现，现补记文档）。
+- 实施内容：
+  - `KnowledgeArticleService.listArticles(filter)` 已在 `article.service.ts` 中实现，支持按标题、分类、标签和状态过滤。
+  - `GET /api/admin/knowledge/articles` 路由已在 `article.router.ts` 中实现，支持 `title`、`categoryId`、`status`、`tagName`、`limit` 和 `offset` 查询参数。
+  - `PgKnowledgeArticleRepository.listArticles` 使用 PostgreSQL 参数化查询，通过 `ILIKE` 模糊匹配标题、精确匹配分类和状态、`EXISTS` 子查询过滤标签。
+  - 测试覆盖分页查询和多条件过滤，验证结果数量和内容正确。
+- 接口边界：
+  - `GET /api/admin/knowledge/articles?title=xxx&categoryId=xxx&status=enabled&tagName=xxx&limit=10&offset=0`。
+  - 所有过滤条件可选；不传参数时返回全部未删除条目。
+  - 分页参数 `limit` 默认 20、`offset` 默认 0。
+- 我执行的验证：
+  - 运行 `npm.cmd run test:api`，15 个 API 测试文件、55 个测试全部通过，其中 `knowledge-article-create.test.ts` 包含列表查询过滤和分页测试。
+  - 运行 `npm.cmd run typecheck`，类型检查通过。
+  - 运行 `npm.cmd run format:check`，格式检查通过。
+
 ## 申请演示补强：最小知识问答闭环与材料整理
 
 - 状态：已完成，用于形成可申请、可证明、可演示的最小 AI 客服能力，不改变原实施计划下一步。
@@ -685,6 +719,81 @@
   - 已运行 `npm.cmd run check:local-services`，本地服务编排静态检查通过。
   - 已运行 `git diff --check`，未发现空白错误；仅出现 Windows 换行提示。
 
+## 步骤 22-26：阶段五 — 会话与消息基础功能
+
+- 状态：已完成。
+- 实施内容：
+  - **步骤 22（访客匿名标识）**：使用 `visitorId` 作为访客匿名标识，新访客创建会话后自动关联；同一访客再次访问时复用未关闭会话。
+  - **步骤 23（创建会话）**：`POST /api/visitor/conversations`，支持 `web` 和 `h5` 来源标记；新会话默认进入 `bot_serving` 机器人服务状态；同一访客有未关闭会话时自动返回已有会话。
+  - **步骤 24（发送访客消息）**：`POST /api/visitor/conversations/:id/messages`，消息内容 1-2000 字符；已关闭会话拒绝发送；自动触发机器人回答流程（调用 `KnowledgeAnswerService`）。
+  - **步骤 25（查询消息列表）**：`GET /api/visitor/conversations/:id/messages`，支持 `limit` 和 `offset` 分页，按发送时间正序返回。
+  - **步骤 26（关闭会话）**：`POST /api/visitor/conversations/:id/close`，访客可关闭机器人服务状态或人工服务状态的会话；已关闭会话重复关闭返回明确错误。
+- 新增文件：
+  - `apps/api/src/conversation/conversation.repository.ts`：会话仓储契约接口与内存实现。
+  - `apps/api/src/conversation/conversation.service.ts`：会话业务服务，包含 `ConversationService` 类。
+  - `apps/api/src/conversation/conversation.router.ts`：会话路由，包含访客 API、坐席 API 和管理 API。
+  - `packages/contracts/src/conversation.ts`：会话共享契约类型。
+- 接口清单：
+  - `POST /api/visitor/conversations` — 创建或复用会话
+  - `POST /api/visitor/conversations/:id/messages` — 发送访客消息
+  - `GET /api/visitor/conversations/:id/messages` — 查询消息列表
+  - `POST /api/visitor/conversations/:id/close` — 访客关闭会话
+- 我执行的验证：
+  - 测试覆盖创建会话、复用会话、发送消息、拒绝空/超长消息、已关闭拒绝发送、消息分页、访客关闭会话、重复关闭拒绝。
+  - 运行 `npm.cmd run test:api`，17 个测试文件、84 个测试全部通过。
+
+## 步骤 27-32：阶段六 — AI 问答闭环与会话集成
+
+- 状态：已完成（步骤 27-30 在之前"申请演示补强"中已完成，步骤 31-32 在本批次一并完成）。
+- 实施内容：
+  - **步骤 27（AI 适配层接口）**：`KnowledgeAnswerService` 作为 AI 适配层，业务模块只依赖该内部接口。
+  - **步骤 28（关键词检索）**：`listAnswerableArticles` 按关键词从启用知识条目中检索。
+  - **步骤 29（基础回答生成策略）**：命中知识时返回知识内容并标记 `matched = true`；未命中时返回兜底话术并标记 `needsHandoff = true`。
+  - **步骤 30（敏感业务问题拒答）**：订单、物流、退款、账号等未对接业务数据问题直接拒答，不编造结果。
+  - **步骤 31（会话消息后的机器人回复）**：`sendVisitorMessage` 在 `bot_serving` 状态下自动调用 `KnowledgeAnswerService`，将 AI 回答以 `bot` 消息写入会话。
+  - **步骤 32（记录 AI 调用结果）**：新增迁移 `202605100001_add_handoff_and_ai_answer_logs.sql`，创建 `ai_answer_logs` 表；`sendVisitorMessage` 在 AI 回答后写入 `AiAnswerLog` 记录。
+- 新增文件：
+  - `apps/api/src/database/migrations/202605100001_add_handoff_and_ai_answer_logs.sql`：转人工状态和 AI 日志迁移。
+  - `apps/api/tests/handoff-ai-log-migration.test.ts`：迁移契约测试。
+  - `packages/contracts/src/ai.ts`：AI 相关共享契约。
+- 我执行的验证：
+  - 测试覆盖 AI 消息写入会话、AI 日志记录、新建迁移的静态检查。
+  - 运行 `npm.cmd run test:api`，17 个测试文件、84 个测试全部通过。
+
+## 步骤 33-38：阶段七 — 转人工与坐席基础功能
+
+- 状态：已完成。
+- 实施内容：
+  - **步骤 33（请求转人工）**：`POST /api/visitor/conversations/:id/handoff`，将会话从 `bot_serving` 转为 `waiting_agent` 状态，并写入转人工系统消息；已关闭或已转人工的会话拒绝重复处理。
+  - **步骤 34（AI 建议转人工后的状态处理）**：AI 未命中知识时返回 `needsHandoff = true`，会话仍保持 `bot_serving` 状态，等待访客确认后触发转人工流程。
+  - **步骤 35（待接入会话列表）**：`GET /api/agent/conversations/waiting`，按 `handoffRequestedAt` 升序排序，返回每个会话的访客最近消息摘要；需要 `conversation:handle` 权限。
+  - **步骤 36（坐席接入会话）**：`POST /api/agent/conversations/:id/accept`，会话从 `waiting_agent` 转为 `agent_serving`，绑定坐席账号；非等待状态拒绝接入。
+  - **步骤 37（坐席发送消息）**：`POST /api/agent/conversations/:id/messages`，仅绑定的坐席可发送；人工服务状态下访客消息不再触发机器人回复。
+  - **步骤 38（坐席结束会话）**：`POST /api/agent/conversations/:id/close`，仅绑定的坐席可结束会话；写入审计记录和系统消息。
+- 新增文件：
+  - `apps/api/src/feedback/feedback.service.ts`：满意度评价服务。
+  - `apps/api/src/feedback/feedback.router.ts`：`POST /api/visitor/conversations/:id/rating` 路由。
+  - `apps/api/src/metrics/metrics.service.ts`：指标统计服务（咨询量、转人工率等）。
+  - `apps/api/src/metrics/metrics.router.ts`：`GET /api/admin/metrics/overview` 路由。
+  - `packages/contracts/src/feedback.ts`：满意度评价共享契约。
+  - `packages/contracts/src/metrics.ts`：指标共享契约。
+- 接口清单：
+  - `POST /api/visitor/conversations/:id/handoff` — 请求转人工
+  - `GET /api/agent/conversations/waiting` — 待接入列表（JWT + conversation:handle）
+  - `POST /api/agent/conversations/:id/accept` — 接入会话（JWT + conversation:handle）
+  - `POST /api/agent/conversations/:id/messages` — 坐席发消息（JWT + conversation:handle）
+  - `POST /api/agent/conversations/:id/close` — 坐席结束会话（JWT + conversation:handle）
+  - `POST /api/visitor/conversations/:id/rating` — 满意度评价
+  - `GET /api/admin/conversations` — 管理会话列表（JWT + conversation:read）
+  - `GET /api/admin/metrics/overview` — 指标概览（JWT + metrics:read）
+- 我执行的验证：
+  - 测试覆盖转人工请求、重复转人工拒绝、待接入列表、接入会话、非等待状态拒绝、坐席发消息、非绑定坐席拒绝、坐席关闭会话、管理列表查询与过滤、指标概览、权限校验。
+  - 运行 `npm.cmd run test:api`，17 个测试文件、84 个测试全部通过。
+  - 运行 `npm.cmd run typecheck`，类型检查通过。
+  - 运行 `npm.cmd run format:check`，格式检查通过。
+  - 运行 `npm.cmd run check:boundaries`，模块边界检查通过。
+  - 运行 `npm.cmd run check:migrations`，数据库迁移静态检查通过。
+
 ## 下一步
 
-继续进入步骤 20：实现知识条目启停。
+继续进入步骤 39：实现聊天入口 UI。

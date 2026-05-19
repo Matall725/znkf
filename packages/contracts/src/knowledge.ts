@@ -66,6 +66,22 @@ export interface UpdateKnowledgeArticleRequest {
   status?: KnowledgeArticleStatus | undefined;
 }
 
+export interface ListKnowledgeArticlesRequest {
+  title?: string | undefined;
+  categoryId?: string | undefined;
+  tagName?: string | undefined;
+  status?: KnowledgeArticleStatus | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
+export interface ListKnowledgeArticlesResponse {
+  articles: KnowledgeArticle[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface KnowledgeAnswerRequest {
   question: string;
 }

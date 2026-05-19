@@ -2,6 +2,7 @@ import {
   knowledgeArticleStatuses,
   knowledgeArticleTypes,
   type CreateKnowledgeArticleRequest,
+  type ListKnowledgeArticlesRequest,
   type UpdateKnowledgeArticleRequest,
 } from '@znkfxt/contracts';
 import { Router } from 'express';
@@ -57,6 +58,17 @@ export interface KnowledgeArticleRouterOptions {
   accessTokenVerifier: AccessTokenVerifier;
 }
 
+const listArticlesQuerySchema = z
+  .object({
+    title: z.string().trim().min(1).optional(),
+    categoryId: z.string().uuid().optional(),
+    tagName: z.string().trim().min(1).optional(),
+    status: z.enum(knowledgeArticleStatuses).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  })
+  .strict();
+
 function parseRequest<T>(schema: z.ZodType<T>, value: unknown, message: string): T {
   const parsed = schema.safeParse(value);
 
@@ -77,7 +89,28 @@ function parseRequest<T>(schema: z.ZodType<T>, value: unknown, message: string):
 export function createKnowledgeArticleRouter(options: KnowledgeArticleRouterOptions): Router {
   const router = Router();
   const authenticate = createAuthenticationMiddleware(options.accessTokenVerifier);
+  const requireKnowledgeRead = createRequireBackendPermissionMiddleware('knowledge:read');
   const requireKnowledgeWrite = createRequireBackendPermissionMiddleware('knowledge:write');
+
+  router.get(
+    '/api/admin/knowledge/articles',
+    authenticate,
+    requireKnowledgeRead,
+    async (request, response, next) => {
+      try {
+        const articleRequest = parseRequest<ListKnowledgeArticlesRequest>(
+          listArticlesQuerySchema,
+          request.query,
+          'Invalid knowledge article query.',
+        );
+        const articles = await options.service.listArticles(articleRequest);
+
+        response.status(200).json(articles);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   router.post(
     '/api/admin/knowledge/articles',
@@ -118,6 +151,48 @@ export function createKnowledgeArticleRouter(options: KnowledgeArticleRouterOpti
           'Invalid knowledge article request.',
         );
         const article = await options.service.updateArticle(params.id, articleRequest, account);
+
+        response.status(200).json(article);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    '/api/admin/knowledge/articles/:id/enable',
+    authenticate,
+    requireKnowledgeWrite,
+    async (request, response, next) => {
+      try {
+        const account = requireAuthenticatedAccount(request);
+        const params = parseRequest(
+          articleIdParamsSchema,
+          request.params,
+          'Invalid knowledge article id.',
+        );
+        const article = await options.service.setArticleStatus(params.id, 'enabled', account);
+
+        response.status(200).json(article);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    '/api/admin/knowledge/articles/:id/disable',
+    authenticate,
+    requireKnowledgeWrite,
+    async (request, response, next) => {
+      try {
+        const account = requireAuthenticatedAccount(request);
+        const params = parseRequest(
+          articleIdParamsSchema,
+          request.params,
+          'Invalid knowledge article id.',
+        );
+        const article = await options.service.setArticleStatus(params.id, 'disabled', account);
 
         response.status(200).json(article);
       } catch (error) {

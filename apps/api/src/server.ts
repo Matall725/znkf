@@ -4,7 +4,17 @@ import { createAuthRouter } from './auth/auth.router.ts';
 import { createAuthServiceFromEnvironment, type AuthService } from './auth/auth.service.ts';
 import type { AppEnvironmentConfig } from './config/environment.ts';
 import { loadRuntimeEnvironmentConfig } from './config/runtime-environment.ts';
+import { createConversationRouter } from './conversation/conversation.router.ts';
+import {
+  createConversationServiceFromConnectionString,
+  type ConversationService,
+} from './conversation/conversation.service.ts';
 import { createErrorHandler, createNotFoundHandler } from './errors/error.middleware.ts';
+import { createFeedbackRouter } from './feedback/feedback.router.ts';
+import {
+  createFeedbackServiceFromConnectionString,
+  type FeedbackService,
+} from './feedback/feedback.service.ts';
 import { createHealthRouter } from './health/health.router.ts';
 import { HealthService } from './health/health.service.ts';
 import { createKnowledgeAnswerRouter } from './knowledge/answer.router.ts';
@@ -25,16 +35,24 @@ import {
 import { createAppLogger, type AppLogger } from './logging/logger.ts';
 import { createRequestContextMiddleware } from './logging/request-context.middleware.ts';
 import { createRequestLoggingMiddleware } from './logging/request-logging.middleware.ts';
+import { createMetricsRouter } from './metrics/metrics.router.ts';
+import {
+  createMetricsServiceFromConnectionString,
+  type MetricsService,
+} from './metrics/metrics.service.ts';
 
 export interface CreateApiServerOptions {
   environment?: AppEnvironmentConfig;
   accessTokenVerifier?: AccessTokenVerifier;
   authService?: AuthService;
+  conversationService?: ConversationService;
+  feedbackService?: FeedbackService;
   healthService?: HealthService;
   knowledgeAnswerService?: KnowledgeAnswerService;
   knowledgeArticleService?: KnowledgeArticleService;
   knowledgeCategoryService?: KnowledgeCategoryService;
   logger?: AppLogger;
+  metricsService?: MetricsService;
   configureRoutes?: (app: Express) => void;
 }
 
@@ -80,6 +98,24 @@ export function createApiServer(options: CreateApiServerOptions = {}): Express {
           knowledgeCategoryService,
         )
       : undefined);
+  const conversationService =
+    options.conversationService ??
+    (runtimeEnvironment
+      ? createConversationServiceFromConnectionString(
+          runtimeEnvironment.database.url,
+          knowledgeAnswerService,
+        )
+      : undefined);
+  const feedbackService =
+    options.feedbackService ??
+    (runtimeEnvironment
+      ? createFeedbackServiceFromConnectionString(runtimeEnvironment.database.url)
+      : undefined);
+  const metricsService =
+    options.metricsService ??
+    (runtimeEnvironment
+      ? createMetricsServiceFromConnectionString(runtimeEnvironment.database.url)
+      : undefined);
 
   app.disable('x-powered-by');
   app.use(createRequestContextMiddleware());
@@ -104,6 +140,25 @@ export function createApiServer(options: CreateApiServerOptions = {}): Express {
     app.use(
       createKnowledgeArticleRouter({
         service: knowledgeArticleService,
+        accessTokenVerifier,
+      }),
+    );
+  }
+  if (conversationService && accessTokenVerifier) {
+    app.use(
+      createConversationRouter({
+        service: conversationService,
+        accessTokenVerifier,
+      }),
+    );
+  }
+  if (feedbackService) {
+    app.use(createFeedbackRouter({ service: feedbackService }));
+  }
+  if (metricsService && accessTokenVerifier) {
+    app.use(
+      createMetricsRouter({
+        service: metricsService,
         accessTokenVerifier,
       }),
     );

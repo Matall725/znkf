@@ -1,4 +1,5 @@
 import type {
+  AiAnswerConfidenceLevel,
   KnowledgeAnswerRequest,
   KnowledgeAnswerResponse,
   KnowledgeArticle,
@@ -11,6 +12,18 @@ import {
 
 export interface KnowledgeAnswerServiceOptions {
   articleSearchRepository: KnowledgeArticleSearchRepository;
+}
+
+export interface KnowledgeAnswerDecision {
+  answer: string;
+  matched: boolean;
+  needsHandoff: boolean;
+  confidenceLevel: AiAnswerConfidenceLevel;
+  failureReason: string | null;
+  sourceArticle?: {
+    article: KnowledgeArticle;
+    matchedTerms: string[];
+  };
 }
 
 interface ScoredArticle {
@@ -50,6 +63,25 @@ export class KnowledgeAnswerService {
   }
 
   async answerQuestion(request: KnowledgeAnswerRequest): Promise<KnowledgeAnswerResponse> {
+    const decision = await this.evaluateQuestion(request);
+
+    return {
+      answer: decision.answer,
+      matched: decision.matched,
+      needsHandoff: decision.needsHandoff,
+      ...(decision.sourceArticle
+        ? {
+            sourceArticle: {
+              id: decision.sourceArticle.article.id,
+              title: decision.sourceArticle.article.title,
+              matchedTerms: decision.sourceArticle.matchedTerms,
+            },
+          }
+        : {}),
+    };
+  }
+
+  async evaluateQuestion(request: KnowledgeAnswerRequest): Promise<KnowledgeAnswerDecision> {
     const question = request.question.trim();
 
     if (!question) {
@@ -61,6 +93,8 @@ export class KnowledgeAnswerService {
         answer: sensitiveBusinessDataAnswer,
         matched: false,
         needsHandoff: true,
+        confidenceLevel: 'none',
+        failureReason: 'sensitive_business_question',
       };
     }
 
@@ -71,21 +105,24 @@ export class KnowledgeAnswerService {
     });
     const bestArticle = selectBestArticle(question, terms, candidates);
 
-    if (!bestArticle) {
+    if (!bestArticle || bestArticle.score < 5) {
       return {
         answer: fallbackAnswer,
         matched: false,
         needsHandoff: true,
+        confidenceLevel: 'none',
+        failureReason: 'no_matching_article',
       };
     }
 
     return {
+      confidenceLevel: bestArticle.score >= 10 ? 'high' : 'low',
       answer: bestArticle.article.content,
       matched: true,
       needsHandoff: false,
+      failureReason: null,
       sourceArticle: {
-        id: bestArticle.article.id,
-        title: bestArticle.article.title,
+        article: bestArticle.article,
         matchedTerms: bestArticle.matchedTerms,
       },
     };

@@ -3,7 +3,10 @@ import type {
   AuthenticatedAccount,
   CreateKnowledgeArticleRequest,
   KnowledgeArticle,
+  KnowledgeArticleStatus,
   KnowledgeCategory,
+  ListKnowledgeArticlesRequest,
+  ListKnowledgeArticlesResponse,
   UpdateKnowledgeArticleRequest,
 } from '@znkfxt/contracts';
 import type { AuditLogRepository } from '../audit/audit.repository.ts';
@@ -146,6 +149,69 @@ export class KnowledgeArticleService {
 
     return article;
   }
+
+  async setArticleStatus(
+    id: string,
+    status: Extract<KnowledgeArticleStatus, 'enabled' | 'disabled'>,
+    actor: AuthenticatedAccount,
+  ): Promise<KnowledgeArticle> {
+    const existingArticle = await this.articleRepository.findArticleById(id);
+
+    if (!existingArticle) {
+      throw new NotFoundError('Knowledge article was not found.');
+    }
+
+    if (existingArticle.status === status) {
+      return existingArticle;
+    }
+
+    const article = await this.articleRepository.setArticleStatus({
+      id,
+      status,
+      actorAccountId: actor.id,
+    });
+
+    if (!article) {
+      throw new NotFoundError('Knowledge article was not found.');
+    }
+
+    await this.auditLogRepository.createAuditLog({
+      actorAccountId: actor.id,
+      actorRoleCode: selectAuditActorRole(actor),
+      action: status === 'enabled' ? 'knowledge_article_enabled' : 'knowledge_article_disabled',
+      targetType: 'knowledge_article',
+      targetId: article.id,
+      metadata: {
+        categoryId: article.categoryId,
+        status: article.status,
+        title: article.title,
+      },
+    });
+
+    return article;
+  }
+
+  async listArticles(
+    request: ListKnowledgeArticlesRequest = {},
+  ): Promise<ListKnowledgeArticlesResponse> {
+    const limit = normalizeLimit(request.limit);
+    const offset = normalizeOffset(request.offset);
+    const result = await this.articleRepository.listArticles({
+      title: normalizeOptionalText(request.title),
+      categoryId: request.categoryId,
+      tagName: normalizeOptionalText(request.tagName),
+      status: request.status,
+      limit,
+      offset,
+    });
+
+    return {
+      articles: result.articles,
+      total: result.total,
+      limit,
+      offset,
+    };
+  }
 }
 
 function hasUpdatePayload(request: UpdateKnowledgeArticleRequest): boolean {
@@ -205,6 +271,40 @@ function normalizeTextList(values: readonly string[]): string[] {
   }
 
   return normalized;
+}
+
+function normalizeOptionalText(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed || undefined;
+}
+
+function normalizeLimit(value: number | undefined): number {
+  if (value === undefined) {
+    return 20;
+  }
+
+  if (!Number.isInteger(value) || value < 1 || value > 100) {
+    throw new BadRequestError('Knowledge article limit must be between 1 and 100.');
+  }
+
+  return value;
+}
+
+function normalizeOffset(value: number | undefined): number {
+  if (value === undefined) {
+    return 0;
+  }
+
+  if (!Number.isInteger(value) || value < 0) {
+    throw new BadRequestError('Knowledge article offset must be zero or a positive integer.');
+  }
+
+  return value;
 }
 
 function selectAuditActorRole(actor: AuthenticatedAccount): AuditActorRoleCode {

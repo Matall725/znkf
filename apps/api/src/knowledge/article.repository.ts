@@ -27,6 +27,21 @@ export interface UpdateKnowledgeArticleInput {
   actorAccountId: string;
 }
 
+export interface SetKnowledgeArticleStatusInput {
+  id: string;
+  status: KnowledgeArticleStatus;
+  actorAccountId: string;
+}
+
+export interface ListKnowledgeArticlesFilter {
+  title?: string | undefined;
+  categoryId?: string | undefined;
+  tagName?: string | undefined;
+  status?: KnowledgeArticleStatus | undefined;
+  limit: number;
+  offset: number;
+}
+
 export interface ListAnswerableArticlesInput {
   terms: string[];
   limit: number;
@@ -35,6 +50,11 @@ export interface ListAnswerableArticlesInput {
 export interface KnowledgeArticleRepository {
   createArticle(input: CreateKnowledgeArticleInput): Promise<KnowledgeArticle>;
   updateArticle(input: UpdateKnowledgeArticleInput): Promise<KnowledgeArticle | null>;
+  setArticleStatus(input: SetKnowledgeArticleStatusInput): Promise<KnowledgeArticle | null>;
+  findArticleById(id: string): Promise<KnowledgeArticle | null>;
+  listArticles(
+    filter: ListKnowledgeArticlesFilter,
+  ): Promise<{ articles: KnowledgeArticle[]; total: number }>;
 }
 
 export interface KnowledgeArticleSearchRepository {
@@ -161,6 +181,140 @@ export class PgKnowledgeArticleRepository
     }
   }
 
+  async setArticleStatus(input: SetKnowledgeArticleStatusInput): Promise<KnowledgeArticle | null> {
+    const client = await this.pool.connect();
+
+    try {
+      const result = await client.query<KnowledgeArticleRow>(
+        `
+          UPDATE app.knowledge_articles
+          SET
+            status = $2,
+            updated_by_account_id = $3,
+            updated_at = now()
+          WHERE id = $1
+            AND deleted_at IS NULL
+          RETURNING ${articleSelectColumns}
+        `,
+        [input.id, input.status, input.actorAccountId],
+      );
+      const row = result.rows[0];
+
+      if (!row) {
+        return null;
+      }
+
+      return toKnowledgeArticle(row, await this.listTagNamesForArticle(client, row.id));
+    } finally {
+      client.release();
+    }
+  }
+
+  async findArticleById(id: string): Promise<KnowledgeArticle | null> {
+    const client = await this.pool.connect();
+
+    try {
+      const result = await client.query<KnowledgeArticleRow>(
+        `
+          SELECT ${articleSelectColumns}
+          FROM app.knowledge_articles
+          WHERE id = $1
+            AND deleted_at IS NULL
+          LIMIT 1
+        `,
+        [id],
+      );
+      const row = result.rows[0];
+
+      if (!row) {
+        return null;
+      }
+
+      return toKnowledgeArticle(row, await this.listTagNamesForArticle(client, row.id));
+    } finally {
+      client.release();
+    }
+  }
+
+  async listArticles(
+    filter: ListKnowledgeArticlesFilter,
+  ): Promise<{ articles: KnowledgeArticle[]; total: number }> {
+    const client = await this.pool.connect();
+
+    try {
+      const queryValues = [
+        filter.title ? `%${filter.title}%` : null,
+        filter.categoryId ?? null,
+        filter.status ?? null,
+        filter.tagName ? filter.tagName.trim() : null,
+        filter.limit,
+        filter.offset,
+      ];
+
+      const [countResult, rowsResult] = await Promise.all([
+        client.query<{ count: string }>(
+          `
+            SELECT COUNT(*)::text AS count
+            FROM app.knowledge_articles articles
+            WHERE articles.deleted_at IS NULL
+              AND ($1::text IS NULL OR articles.title ILIKE $1)
+              AND ($2::uuid IS NULL OR articles.category_id = $2)
+              AND ($3::text IS NULL OR articles.status = $3)
+              AND (
+                $4::text IS NULL
+                OR EXISTS (
+                  SELECT 1
+                  FROM app.knowledge_article_tags article_tags
+                  INNER JOIN app.knowledge_tags tags ON tags.id = article_tags.tag_id
+                  WHERE article_tags.article_id = articles.id
+                    AND tags.name = $4
+                )
+              )
+          `,
+          queryValues.slice(0, 4),
+        ),
+        client.query<KnowledgeArticleRow>(
+          `
+            SELECT ${articleSelectColumns}
+            FROM app.knowledge_articles articles
+            WHERE articles.deleted_at IS NULL
+              AND ($1::text IS NULL OR articles.title ILIKE $1)
+              AND ($2::uuid IS NULL OR articles.category_id = $2)
+              AND ($3::text IS NULL OR articles.status = $3)
+              AND (
+                $4::text IS NULL
+                OR EXISTS (
+                  SELECT 1
+                  FROM app.knowledge_article_tags article_tags
+                  INNER JOIN app.knowledge_tags tags ON tags.id = article_tags.tag_id
+                  WHERE article_tags.article_id = articles.id
+                    AND tags.name = $4
+                )
+              )
+            ORDER BY articles.updated_at DESC, articles.id DESC
+            LIMIT $5
+            OFFSET $6
+          `,
+          queryValues,
+        ),
+      ]);
+      const tagNamesByArticleId = await this.listTagNamesByArticleIds(
+        client,
+        rowsResult.rows.map((row) => row.id),
+      );
+      const articles = rowsResult.rows.map((row) =>
+        toKnowledgeArticle(row, tagNamesByArticleId.get(row.id) ?? []),
+      );
+
+      return {
+        articles,
+        total: Number(countResult.rows[0]?.count ?? 0),
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async listAnswerableArticles(input: ListAnswerableArticlesInput): Promise<KnowledgeArticle[]> {
     if (input.terms.length === 0) {
       return [];
@@ -192,15 +346,14 @@ export class PgKnowledgeArticleRepository
         `,
         [input.terms, input.limit],
       );
-      const articles: KnowledgeArticle[] = [];
+      const tagNamesByArticleId = await this.listTagNamesByArticleIds(
+        client,
+        result.rows.map((row) => row.id),
+      );
 
-      for (const row of result.rows) {
-        const tagNames = await this.listTagNamesForArticle(client, row.id);
-
-        articles.push(toKnowledgeArticle(row, tagNames));
-      }
-
-      return articles;
+      return result.rows.map((row) =>
+        toKnowledgeArticle(row, tagNamesByArticleId.get(row.id) ?? []),
+      );
     } finally {
       client.release();
     }
@@ -337,5 +490,35 @@ export class PgKnowledgeArticleRepository
     );
 
     return result.rows.map((row) => row.name);
+  }
+
+  private async listTagNamesByArticleIds(
+    client: PoolClient,
+    articleIds: readonly string[],
+  ): Promise<Map<string, string[]>> {
+    if (articleIds.length === 0) {
+      return new Map<string, string[]>();
+    }
+
+    const result = await client.query<{ article_id: string; name: string }>(
+      `
+        SELECT article_tags.article_id::text AS article_id, tags.name
+        FROM app.knowledge_article_tags article_tags
+        INNER JOIN app.knowledge_tags tags ON tags.id = article_tags.tag_id
+        WHERE article_tags.article_id = ANY($1::uuid[])
+        ORDER BY tags.name ASC
+      `,
+      [articleIds],
+    );
+    const tagNamesByArticleId = new Map<string, string[]>();
+
+    for (const row of result.rows) {
+      const tagNames = tagNamesByArticleId.get(row.article_id) ?? [];
+
+      tagNames.push(row.name);
+      tagNamesByArticleId.set(row.article_id, tagNames);
+    }
+
+    return tagNamesByArticleId;
   }
 }
