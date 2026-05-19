@@ -4,6 +4,19 @@
   "private": true,
   "description": "Agent console workspace for handling handoff conversations.",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^6.3.5"
   }
 }

@@ -836,19 +836,41 @@
   - 已运行 `npm.cmd run test:web-widget`，4 个测试文件、15 个测试全部通过（新增 visitor-id.test.ts 4 个 + conversation-init.test.tsx 4 个）。
   - 已运行 `npm.cmd run typecheck`，类型检查通过。
 
-## 步骤 41：实现访客消息发送与展示
+## 步骤 42：实现转人工入口
 
 - 状态：已完成。
 - 实施内容：
-  - 更新 `useConversation.ts`：新增 `messages` 状态管理、`sendMessage` 发送方法、`sending` 状态标志、`loadHistory` 历史加载方法；初始化成功后自动拉取已有消息。
-  - 更新 `ChatPanel.tsx`：接收 `messages`、`onSend`、`sending` 属性；输入框和发送按钮在 `ready` 状态下启用；支持 Enter 键发送；防止空消息提交；展示消息气泡（访客蓝色右对齐、机器人灰色左对齐、系统灰色居中斜体）；自动滚动到最新消息。
-  - 更新 `ChatEntry.tsx`：传递 `messages`、`sendMessage`、`sending` 属性到 ChatPanel。
-  - 更新 `chat-entry.test.tsx`：新增消息发送（按钮点击、Enter 键、空消息）、消息展示（访客+机器人、系统消息）、发送中状态共 6 个测试。
-- 新增文件：无（仅更新现有文件）。
+  - 更新 `api-client.ts`：`requestHandoff` 方法返回完整的 `RequestConversationHandoffResponse` 类型（含 conversation 和 systemMessage）。
+  - 更新 `useConversation.ts`：新增 `requestHandoff` 方法——调用 API 发起转人工请求，更新会话状态并追加系统消息；新增 `handoffRequesting` 状态防止重复请求。
+  - 更新 `ChatPanel.tsx`：新增 `onRequestHandoff` 和 `handoffRequesting` 属性；`bot_serving` 状态显示"转人工"按钮；`waiting_agent`/`handoff_pending_confirmation` 显示等待告知；`agent_serving` 显示人工服务中；`closed` 显示会话已结束。
+  - 更新 `ChatEntry.tsx`：传递 `requestHandoff` 和 `handoffRequesting` 到 ChatPanel。
+  - 修复 `api-client.ts`：`listMessages` 返回类型 `Conversation[]` → `ConversationMessage[]`。
+  - 修复 `useConversation.ts`：`loadHistory` 正确提取 `.messages`。
+- 边界说明：
+  - 当前只实现访客端转人工入口和等待状态展示。
+  - 未实现坐席端接入、AI 建议转人工后的自动提示、转人工超时重试或坐席不存在时的降级提示。
+  - 转人工按钮仅在 `bot_serving` 状态且提供了 `onRequestHandoff` 回调时显示。
 - 我执行的验证：
-  - 已运行 web-widget 测试，4 个测试文件、21 个测试全部通过。
+  - 已运行 web-widget 测试，4 个测试文件、26 个测试全部通过（新增 5 个转人工测试：按钮可见、点击调用回调、等待状态、请求中禁用、无回调时不显示）。
+  - 已运行 `typecheck`，类型检查通过。
+
+## 步骤 43：实现会话评价入口
+
+- 状态：已完成。
+- 实施内容：
+  - 更新 `api-client.ts`：新增 `createRating` 方法——`POST /visitor/conversations/:id/rating`，请求类型 `CreateSatisfactionRatingRequest`，返回 `SatisfactionRating`。
+  - 更新 `useConversation.ts`：新增 `submitRating` 方法——调用 API 提交评分，成功后设置 `ratingSubmitted` 状态；新增 `submittingRating` 和 `ratingSubmitted` 状态变量防止重复提交。
+  - 更新 `ChatPanel.tsx`：新增 `onSubmitRating`、`submittingRating`、`ratingSubmitted` 属性；会话关闭（`closed`）时显示评分 UI——5 个表情评分按钮（😡😟😐😊😍 对应 1-5 分）、可选文字评论 textarea、提交按钮；评分已提交显示"感谢您的评价！"；未提供 `onSubmitRating` 时降级显示"会话已结束"。
+  - 更新 `ChatEntry.tsx`：传递 `submitRating`、`submittingRating`、`ratingSubmitted` 到 ChatPanel。
+- 边界说明：
+  - 当前只在 web-widget 访客端展示评分入口。
+  - 未实现坐席端查看评分、评分统计看板、多次评分合并。
+  - 评分提交后页面不重建，需要刷新消息列表才会清除评价状态。
+  - 提交按钮仅在选择了评分分数后显示。
+- 我执行的验证：
+  - 已运行 web-widget 测试，4 个测试文件、32 个测试全部通过（新增 6 个评分测试：按钮可见、选择后显示提交、提交传入分数和评论、已提交状态、无回调时不显示、提交中状态）。
   - 已运行 `typecheck`，类型检查通过。
 
 ## 下一步
 
-继续进入步骤 42：实现前端访客会话列表与历史消息加载。
+继续进入步骤 44：实现坐席登录页。

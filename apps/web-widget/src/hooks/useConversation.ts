@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Conversation, ConversationMessage } from '@znkfxt/contracts';
+import type { Conversation, ConversationMessage, CreateSatisfactionRatingRequest } from '@znkfxt/contracts';
 import { ApiClient } from '../api-client';
 import { getOrCreateVisitorId } from '../visitor-id';
 
@@ -17,6 +17,9 @@ export function useConversation({ apiBaseUrl }: UseConversationOptions) {
   const [state, setState] = useState<ConversationState>({ kind: 'idle' });
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [sending, setSending] = useState(false);
+  const [handoffRequesting, setHandoffRequesting] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const clientRef = useRef<ApiClient | null>(null);
   const visitorIdRef = useRef<string | null>(null);
 
@@ -49,7 +52,7 @@ export function useConversation({ apiBaseUrl }: UseConversationOptions) {
       // Load existing messages after initialization
       try {
         const history = await client.listMessages(response.conversation.id);
-        setMessages(history);
+        setMessages(history.messages);
       } catch {
         // Silently fail — messages are not critical
       }
@@ -76,7 +79,7 @@ export function useConversation({ apiBaseUrl }: UseConversationOptions) {
 
     try {
       const result = await client.listMessages(currentState.conversation.id);
-      setMessages(result);
+      setMessages(result.messages);
     } catch (error) {
       // Silently fail — messages are not critical for initial render
       if (error instanceof Error) {
@@ -106,8 +109,9 @@ export function useConversation({ apiBaseUrl }: UseConversationOptions) {
 
       setMessages((prev) => [...prev, response.visitorMessage]);
 
-      if (response.botMessage) {
-        setMessages((prev) => [...prev, response.botMessage]);
+      const botMsg = response.botMessage;
+      if (botMsg) {
+        setMessages((prev) => [...prev, botMsg]);
       }
     } catch (error) {
       const message =
@@ -118,5 +122,55 @@ export function useConversation({ apiBaseUrl }: UseConversationOptions) {
     }
   }, [state]);
 
-  return { state, initialize, reset, visitorId: visitorIdRef.current, messages, sendMessage, sending, loadHistory };
+  const requestHandoff = useCallback(async () => {
+    const client = clientRef.current;
+    const currentState = state;
+
+    if (!client || currentState.kind !== 'ready' || handoffRequesting) {
+      return;
+    }
+
+    setHandoffRequesting(true);
+
+    try {
+      const response = await client.requestHandoff(currentState.conversation.id);
+
+      setState({
+        kind: 'ready',
+        conversation: response.conversation,
+      });
+
+      setMessages((prev) => [...prev, response.systemMessage]);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to request handoff.';
+      setState({ kind: 'error', message });
+    } finally {
+      setHandoffRequesting(false);
+    }
+  }, [state, handoffRequesting]);
+
+  const submitRating = useCallback(async (score: number, comment?: string) => {
+    const client = clientRef.current;
+    const currentState = state;
+
+    if (!client || currentState.kind !== 'ready' || submittingRating || ratingSubmitted) {
+      return;
+    }
+
+    setSubmittingRating(true);
+
+    try {
+      await client.createRating(currentState.conversation.id, { score: score as 1|2|3|4|5, comment });
+      setRatingSubmitted(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to submit rating.';
+      setState({ kind: 'error', message });
+    } finally {
+      setSubmittingRating(false);
+    }
+  }, [state, submittingRating, ratingSubmitted]);
+
+  return { state, initialize, reset, visitorId: visitorIdRef.current, messages, sendMessage, sending, loadHistory, requestHandoff, handoffRequesting, submitRating, submittingRating, ratingSubmitted };
 }

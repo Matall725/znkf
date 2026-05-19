@@ -203,6 +203,200 @@ describe('ChatPanel', () => {
 
     expect(screen.getByText('会话已转接人工')).toBeInTheDocument();
   });
+
+  describe('handoff', () => {
+    it('shows handoff button when status is bot_serving and onRequestHandoff is provided', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'bot_serving' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onRequestHandoff={() => {}}
+        />,
+      );
+      expect(screen.getByTestId('handoff-btn')).toBeInTheDocument();
+      expect(screen.getByText('转人工')).toBeInTheDocument();
+    });
+
+    it('calls onRequestHandoff when handoff button is clicked', async () => {
+      const onRequestHandoff = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'bot_serving' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onRequestHandoff={onRequestHandoff}
+        />,
+      );
+      await user.click(screen.getByTestId('handoff-btn'));
+      expect(onRequestHandoff).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows waiting status when conversation is waiting_agent', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'waiting_agent' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+        />,
+      );
+      expect(screen.getByTestId('handoff-waiting')).toBeInTheDocument();
+      expect(screen.getByText('正在为您转接人工坐席，请稍候...')).toBeInTheDocument();
+    });
+
+    it('disables handoff button while handoffRequesting is true', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'bot_serving' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onRequestHandoff={() => {}}
+          handoffRequesting={true}
+        />,
+      );
+      const btn = screen.getByTestId('handoff-btn');
+      expect(btn).toBeDisabled();
+      expect(screen.getByText('转接中...')).toBeInTheDocument();
+    });
+
+    it('does not show handoff button when onRequestHandoff is not provided', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'bot_serving' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+        />,
+      );
+      expect(screen.queryByTestId('handoff-btn')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('rating', () => {
+    it('shows rating buttons when conversation is closed and onSubmitRating is provided', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={() => {}}
+        />,
+      );
+      expect(screen.getByText('请为本次服务评分')).toBeInTheDocument();
+      expect(screen.getByLabelText('评分 1')).toBeInTheDocument();
+      expect(screen.getByLabelText('评分 5')).toBeInTheDocument();
+    });
+
+    it('shows submit button after selecting a score', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={() => {}}
+        />,
+      );
+      expect(screen.queryByText('提交评分')).not.toBeInTheDocument();
+      await user.click(screen.getByLabelText('评分 4'));
+      expect(screen.getByText('提交评分')).toBeInTheDocument();
+    });
+
+    it('calls onSubmitRating with score and comment when submit button is clicked', async () => {
+      const onSubmitRating = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={onSubmitRating}
+        />,
+      );
+      await user.click(screen.getByLabelText('评分 5'));
+      const textarea = screen.getByPlaceholderText('可选：补充您的意见');
+      await user.type(textarea, '非常满意');
+      await user.click(screen.getByText('提交评分'));
+      expect(onSubmitRating).toHaveBeenCalledWith(5, '非常满意');
+    });
+
+    it('shows "感谢您的评价" after rating is submitted', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={() => {}}
+          ratingSubmitted={true}
+        />,
+      );
+      expect(screen.getByText('感谢您的评价！')).toBeInTheDocument();
+      expect(screen.queryByText('请为本次服务评分')).not.toBeInTheDocument();
+    });
+
+    it('does not show rating buttons when onSubmitRating is not provided', () => {
+      render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+        />,
+      );
+      expect(screen.getByText('会话已结束')).toBeInTheDocument();
+      expect(screen.queryByText('请为本次服务评分')).not.toBeInTheDocument();
+    });
+
+    it('shows "提交中..." on submit button while submittingRating is true', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={() => {}}
+        />,
+      );
+      // First select a score
+      await user.click(screen.getByLabelText('评分 4'));
+      expect(screen.getByText('提交评分')).toBeInTheDocument();
+
+      // Then re-render with submittingRating=true
+      rerender(
+        <ChatPanel
+          onClose={() => {}}
+          conversationState={{ kind: 'ready', conversation: { id: 'conv-1', status: 'closed' } as import('@znkfxt/contracts').Conversation }}
+          messages={[]}
+          onSend={() => {}}
+          sending={false}
+          onSubmitRating={() => {}}
+          submittingRating={true}
+        />,
+      );
+      expect(screen.getByText('提交中...')).toBeInTheDocument();
+    });
+  });
 });
 
 describe('ChatEntry', () => {

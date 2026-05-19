@@ -247,10 +247,7 @@ export class ConversationService {
       throw new BadRequestError('Conversation is already closed.');
     }
 
-    if (
-      conversation.status === 'waiting_agent' ||
-      conversation.status === 'agent_serving'
-    ) {
+    if (conversation.status === 'waiting_agent' || conversation.status === 'agent_serving') {
       throw new BadRequestError('Handoff has already been processed.');
     }
 
@@ -330,7 +327,9 @@ export class ConversationService {
     }
 
     if (conversation.status !== 'agent_serving') {
-      throw new BadRequestError('Conversation must be in agent serving status to send agent messages.');
+      throw new BadRequestError(
+        'Conversation must be in agent serving status to send agent messages.',
+      );
     }
 
     if (conversation.assignedAgentAccountId !== agentAccountId) {

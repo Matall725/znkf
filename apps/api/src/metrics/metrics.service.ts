@@ -47,9 +47,7 @@ function normalizeDateTime(value: string | undefined): string | null {
   return parsed.toISOString();
 }
 
-export function createMetricsServiceFromConnectionString(
-  connectionString: string,
-): MetricsService {
+export function createMetricsServiceFromConnectionString(connectionString: string): MetricsService {
   return new MetricsService({
     conversationRepository: PgConversationRepository.fromConnectionString(connectionString),
   });

@@ -290,9 +290,7 @@ class TestKnowledgeArticleRepository
             article.keywords.some((keyword) =>
               normalizeForMatch(keyword).includes(normalizedTerm),
             ) ||
-            article.tagNames.some((tagName) =>
-              normalizeForMatch(tagName).includes(normalizedTerm),
-            )
+            article.tagNames.some((tagName) => normalizeForMatch(tagName).includes(normalizedTerm))
           );
         }),
       )

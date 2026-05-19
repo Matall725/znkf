@@ -5,5 +5,13 @@
   "description": "Shared frontend UI workspace.",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --pretty false --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7"
   }
 }

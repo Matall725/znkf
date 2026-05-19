@@ -1,7 +1,4 @@
-import type {
-  CreateSatisfactionRatingRequest,
-  SatisfactionRating,
-} from '@znkfxt/contracts';
+import type { CreateSatisfactionRatingRequest, SatisfactionRating } from '@znkfxt/contracts';
 import {
   PgConversationRepository,
   type ConversationRepository,
@@ -35,7 +32,12 @@ export class FeedbackService {
       throw new NotFoundError('Conversation was not found.');
     }
 
-    if (!request.score || request.score < 1 || request.score > 5 || !Number.isInteger(request.score)) {
+    if (
+      !request.score ||
+      request.score < 1 ||
+      request.score > 5 ||
+      !Number.isInteger(request.score)
+    ) {
       throw new BadRequestError('Satisfaction rating score must be an integer between 1 and 5.');
     }
 

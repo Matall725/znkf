@@ -4,6 +4,9 @@
   "private": true,
   "description": "Embeddable website and H5 customer service widget workspace.",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --pretty false --noEmit",
     "test": "vitest run --environment jsdom --pool threads"
   },
@@ -17,6 +20,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^6.0.2"
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^6.3.5"
   }
 }

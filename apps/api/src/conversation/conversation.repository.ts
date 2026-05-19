@@ -121,7 +121,9 @@ export interface ConversationRepository {
   createAiAnswerLog(input: CreateAiAnswerLogInput): Promise<AiAnswerLog>;
   listAiAnswerLogsByConversationId(conversationId: string): Promise<AiAnswerLog[]>;
   createSatisfactionRating(input: CreateSatisfactionRatingInput): Promise<SatisfactionRating>;
-  findSatisfactionRatingByConversationId(conversationId: string): Promise<SatisfactionRating | null>;
+  findSatisfactionRatingByConversationId(
+    conversationId: string,
+  ): Promise<SatisfactionRating | null>;
   getMetricsOverview(filter: MetricsFilter): Promise<MetricsOverview>;
 }
 
@@ -396,7 +398,9 @@ export class PgConversationRepository implements ConversationRepository {
     return result.rows[0] ? toConversation(result.rows[0]) : null;
   }
 
-  async acceptWaitingConversation(input: AcceptWaitingConversationInput): Promise<Conversation | null> {
+  async acceptWaitingConversation(
+    input: AcceptWaitingConversationInput,
+  ): Promise<Conversation | null> {
     const result = await this.pool.query<ConversationRow>(
       `
         UPDATE app.conversations

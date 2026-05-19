@@ -10,7 +10,7 @@ export function ChatEntry({ apiBaseUrl }: ChatEntryOptions) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const { state: conversationState, initialize, messages, sendMessage, sending } = useConversation({ apiBaseUrl });
+  const { state: conversationState, initialize, messages, sendMessage, sending, requestHandoff, handoffRequesting, submitRating, submittingRating, ratingSubmitted } = useConversation({ apiBaseUrl });
 
   // Initialize conversation when panel opens
   const handleOpen = useCallback(() => {
@@ -52,7 +52,7 @@ export function ChatEntry({ apiBaseUrl }: ChatEntryOptions) {
     >
       {open && (
         <div ref={panelRef}>
-          <ChatPanel onClose={handleClose} conversationState={conversationState} messages={messages} onSend={sendMessage} sending={sending} />
+          <ChatPanel onClose={handleClose} conversationState={conversationState} messages={messages} onSend={sendMessage} sending={sending} onRequestHandoff={requestHandoff} handoffRequesting={handoffRequesting} onSubmitRating={submitRating} submittingRating={submittingRating} ratingSubmitted={ratingSubmitted} />
         </div>
       )}
       <button

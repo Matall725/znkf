@@ -10,9 +10,7 @@ import type {
 import request from 'supertest';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { JwtAccessTokenIssuer } from '../src/auth/access-token';
-import {
-  ConversationService,
-} from '../src/conversation/conversation.service';
+import { ConversationService } from '../src/conversation/conversation.service';
 import type {
   AcceptWaitingConversationInput,
   CloseAgentConversationInput,
@@ -50,10 +48,7 @@ const noopLogger: AppLogger = {
   },
 };
 
-function createConversation(
-  id: string,
-  overrides: Partial<Conversation> = {},
-): Conversation {
+function createConversation(id: string, overrides: Partial<Conversation> = {}): Conversation {
   const timestamp = new Date().toISOString();
   return {
     id,
@@ -201,7 +196,9 @@ class TestConversationRepository implements ConversationRepository {
               input.handoffRequestedAt !== undefined ? input.handoffRequestedAt : null,
           }
         : {}),
-      ...(input.setClosedAt ? { closedAt: input.closedAt !== undefined ? input.closedAt : null } : {}),
+      ...(input.setClosedAt
+        ? { closedAt: input.closedAt !== undefined ? input.closedAt : null }
+        : {}),
       ...(input.setAssignedAgentAccountId
         ? {
             assignedAgentAccountId:
@@ -238,7 +235,11 @@ class TestConversationRepository implements ConversationRepository {
   async closeAgentConversation(input: CloseAgentConversationInput): Promise<Conversation | null> {
     const existing = this.conversations.get(input.id);
 
-    if (!existing || existing.status !== 'agent_serving' || existing.assignedAgentAccountId !== input.agentAccountId) {
+    if (
+      !existing ||
+      existing.status !== 'agent_serving' ||
+      existing.assignedAgentAccountId !== input.agentAccountId
+    ) {
       return null;
     }
 
@@ -282,9 +283,7 @@ class TestConversationRepository implements ConversationRepository {
     };
   }
 
-  async listWaitingConversations(
-    filter: ListWaitingConversationsFilter,
-  ): Promise<{
+  async listWaitingConversations(filter: ListWaitingConversationsFilter): Promise<{
     conversations: ConversationListItem[];
     total: number;
   }> {
@@ -329,9 +328,7 @@ class TestConversationRepository implements ConversationRepository {
     return message;
   }
 
-  async listMessages(
-    filter: ListConversationMessagesFilter,
-  ): Promise<{
+  async listMessages(filter: ListConversationMessagesFilter): Promise<{
     messages: ConversationMessage[];
     total: number;
   }> {
@@ -363,7 +360,9 @@ class TestConversationRepository implements ConversationRepository {
     return [...this.aiAnswerLogs];
   }
 
-  async createSatisfactionRating(input: CreateSatisfactionRatingInput): Promise<SatisfactionRating> {
+  async createSatisfactionRating(
+    input: CreateSatisfactionRatingInput,
+  ): Promise<SatisfactionRating> {
     const existingRating = [...this.ratings.values()].find(
       (r) => r.conversationId === input.conversationId,
     );
@@ -402,18 +401,21 @@ class TestConversationRepository implements ConversationRepository {
     const handoffConversations = conversations.filter((c) => c.handoffRequestedAt !== null);
     const ratings = [...this.ratings.values()];
     const averageScore =
-      ratings.length > 0
-        ? ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length
-        : null;
+      ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length : null;
 
     return {
       consultationCount: conversations.length,
       handoffConversationCount: handoffConversations.length,
-      handoffRate: conversations.length > 0 ? handoffConversations.length / conversations.length : 0,
-      autoResolvedConversationCount: closedConversations.filter((c) => c.handoffRequestedAt === null).length,
-      autoResolutionRate: closedConversations.length > 0
-        ? closedConversations.filter((c) => c.handoffRequestedAt === null).length / closedConversations.length
-        : 0,
+      handoffRate:
+        conversations.length > 0 ? handoffConversations.length / conversations.length : 0,
+      autoResolvedConversationCount: closedConversations.filter(
+        (c) => c.handoffRequestedAt === null,
+      ).length,
+      autoResolutionRate:
+        closedConversations.length > 0
+          ? closedConversations.filter((c) => c.handoffRequestedAt === null).length /
+            closedConversations.length
+          : 0,
       ratingCount: ratings.length,
       averageSatisfactionScore: averageScore,
     };
@@ -438,7 +440,9 @@ function createApp(repo: ConversationRepository, answerService?: KnowledgeAnswer
     metricsService,
     accessTokenVerifier: new (class {
       verifyToken(token: string) {
-        const decoded = JSON.parse(Buffer.from(token.split('.')[1] as string, 'base64url').toString());
+        const decoded = JSON.parse(
+          Buffer.from(token.split('.')[1] as string, 'base64url').toString(),
+        );
         return {
           id: decoded.sub ?? agentAccountId,
           loginName: decoded.loginName ?? 'agent',
@@ -493,10 +497,12 @@ describe('conversation lifecycle', () => {
 
   it('reuses an existing open conversation for the same visitor', async () => {
     const app = createApp(repo);
-    repo.addConversation(createConversation(conversationIds[0], {
-      visitorId: 'visitor-1',
-      status: 'bot_serving',
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        visitorId: 'visitor-1',
+        status: 'bot_serving',
+      }),
+    );
 
     const response = await request(app)
       .post('/api/visitor/conversations')
@@ -565,10 +571,12 @@ describe('conversation lifecycle', () => {
     const answerService = new TestKnowledgeAnswerService();
     answerService.setAnswer(true, false);
     const app = createApp(repo, answerService);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'agent_serving',
-      assignedAgentAccountId: agentAccountId,
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'agent_serving',
+        assignedAgentAccountId: agentAccountId,
+      }),
+    );
 
     const response = await request(app)
       .post(`/api/visitor/conversations/${conversationIds[0]}/messages`)
@@ -583,10 +591,12 @@ describe('conversation lifecycle', () => {
 
   it('rejects messages to closed conversations', async () => {
     const app = createApp(repo);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'closed',
-      closedAt: new Date().toISOString(),
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'closed',
+        closedAt: new Date().toISOString(),
+      }),
+    );
 
     await request(app)
       .post(`/api/visitor/conversations/${conversationIds[0]}/messages`)
@@ -661,14 +671,14 @@ describe('conversation lifecycle', () => {
 
   it('rejects closing an already closed conversation', async () => {
     const app = createApp(repo);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'closed',
-      closedAt: new Date().toISOString(),
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'closed',
+        closedAt: new Date().toISOString(),
+      }),
+    );
 
-    await request(app)
-      .post(`/api/visitor/conversations/${conversationIds[0]}/close`)
-      .expect(400);
+    await request(app).post(`/api/visitor/conversations/${conversationIds[0]}/close`).expect(400);
   });
 
   it('requests handoff successfully', async () => {
@@ -693,14 +703,14 @@ describe('conversation lifecycle', () => {
 
   it('rejects handoff if already processed', async () => {
     const app = createApp(repo);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'agent_serving',
-      assignedAgentAccountId: agentAccountId,
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'agent_serving',
+        assignedAgentAccountId: agentAccountId,
+      }),
+    );
 
-    await request(app)
-      .post(`/api/visitor/conversations/${conversationIds[0]}/handoff`)
-      .expect(400);
+    await request(app).post(`/api/visitor/conversations/${conversationIds[0]}/handoff`).expect(400);
   });
 
   // ===== Agent API =====
@@ -725,9 +735,7 @@ describe('conversation lifecycle', () => {
   it('requires authentication for agent routes', async () => {
     const app = createApp(repo);
 
-    await request(app)
-      .get('/api/agent/conversations/waiting')
-      .expect(401);
+    await request(app).get('/api/agent/conversations/waiting').expect(401);
   });
 
   it('accepts a waiting conversation', async () => {
@@ -763,10 +771,12 @@ describe('conversation lifecycle', () => {
   it('sends an agent message', async () => {
     const app = createApp(repo);
     const token = issueToken(['agent']);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'agent_serving',
-      assignedAgentAccountId: agentAccountId,
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'agent_serving',
+        assignedAgentAccountId: agentAccountId,
+      }),
+    );
 
     const response = await request(app)
       .post(`/api/agent/conversations/${conversationIds[0]}/messages`)
@@ -793,10 +803,12 @@ describe('conversation lifecycle', () => {
       status: 'enabled',
       roles: ['agent'],
     });
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'agent_serving',
-      assignedAgentAccountId: agentAccountId,
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'agent_serving',
+        assignedAgentAccountId: agentAccountId,
+      }),
+    );
 
     await request(app)
       .post(`/api/agent/conversations/${conversationIds[0]}/messages`)
@@ -808,10 +820,12 @@ describe('conversation lifecycle', () => {
   it('closes an agent conversation', async () => {
     const app = createApp(repo);
     const token = issueToken(['agent']);
-    repo.addConversation(createConversation(conversationIds[0], {
-      status: 'agent_serving',
-      assignedAgentAccountId: agentAccountId,
-    }));
+    repo.addConversation(
+      createConversation(conversationIds[0], {
+        status: 'agent_serving',
+        assignedAgentAccountId: agentAccountId,
+      }),
+    );
 
     const response = await request(app)
       .post(`/api/agent/conversations/${conversationIds[0]}/close`)
@@ -847,7 +861,12 @@ describe('conversation lifecycle', () => {
     const app = createApp(repo);
     const token = issueToken(['admin']);
     repo.addConversation(createConversation(conversationIds[0], { status: 'bot_serving' }));
-    repo.addConversation(createConversation(conversationIds[1], { status: 'closed', closedAt: new Date().toISOString() }));
+    repo.addConversation(
+      createConversation(conversationIds[1], {
+        status: 'closed',
+        closedAt: new Date().toISOString(),
+      }),
+    );
 
     const response = await request(app)
       .get('/api/admin/conversations')
@@ -866,7 +885,12 @@ describe('conversation lifecycle', () => {
     const app = createApp(repo);
     const token = issueToken(['admin']);
     repo.addConversation(createConversation(conversationIds[0], { status: 'bot_serving' }));
-    repo.addConversation(createConversation(conversationIds[1], { status: 'closed', closedAt: new Date().toISOString() }));
+    repo.addConversation(
+      createConversation(conversationIds[1], {
+        status: 'closed',
+        closedAt: new Date().toISOString(),
+      }),
+    );
 
     const response = await request(app)
       .get('/api/admin/metrics/overview')

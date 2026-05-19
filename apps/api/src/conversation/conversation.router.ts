@@ -7,7 +7,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { AccessTokenVerifier } from '../auth/access-token.ts';
 import { createAuthenticationMiddleware } from '../auth/auth.middleware.ts';
-import { getAuthenticatedAccount, requireAuthenticatedAccount } from '../auth/authenticated-account.ts';
+import {
+  getAuthenticatedAccount,
+  requireAuthenticatedAccount,
+} from '../auth/authenticated-account.ts';
 import { createRequireBackendPermissionMiddleware } from '../auth/permissions.ts';
 import { BadRequestError } from '../errors/api-error.ts';
 import type { ConversationService } from './conversation.service.ts';
@@ -93,7 +96,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
   // Create or reuse conversation
   router.post('/api/visitor/conversations', async (request, response, next) => {
     try {
-      const body = parseRequest(createConversationSchema, request.body, 'Invalid create conversation request.');
+      const body = parseRequest(
+        createConversationSchema,
+        request.body,
+        'Invalid create conversation request.',
+      );
       const result = await options.service.createOrReuseConversation(body);
 
       response.status(201).json(result);
@@ -105,8 +112,16 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
   // Send visitor message
   router.post('/api/visitor/conversations/:id/messages', async (request, response, next) => {
     try {
-      const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
-      const body = parseRequest(sendVisitorMessageSchema, request.body, 'Invalid visitor message request.');
+      const params = parseRequest(
+        conversationIdParamsSchema,
+        request.params,
+        'Invalid conversation id.',
+      );
+      const body = parseRequest(
+        sendVisitorMessageSchema,
+        request.body,
+        'Invalid visitor message request.',
+      );
       const result = await options.service.sendVisitorMessage(params.id, body);
 
       response.status(200).json(result);
@@ -118,7 +133,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
   // List messages
   router.get('/api/visitor/conversations/:id/messages', async (request, response, next) => {
     try {
-      const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
+      const params = parseRequest(
+        conversationIdParamsSchema,
+        request.params,
+        'Invalid conversation id.',
+      );
       const query = parseRequest(listMessagesQuerySchema, request.query, 'Invalid messages query.');
       const result = await options.service.listMessages(params.id, query);
 
@@ -131,7 +150,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
   // Close conversation (visitor)
   router.post('/api/visitor/conversations/:id/close', async (request, response, next) => {
     try {
-      const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
+      const params = parseRequest(
+        conversationIdParamsSchema,
+        request.params,
+        'Invalid conversation id.',
+      );
       const result = await options.service.closeConversationByVisitor(params.id);
 
       response.status(200).json(result);
@@ -143,7 +166,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
   // Request handoff
   router.post('/api/visitor/conversations/:id/handoff', async (request, response, next) => {
     try {
-      const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
+      const params = parseRequest(
+        conversationIdParamsSchema,
+        request.params,
+        'Invalid conversation id.',
+      );
       const result = await options.service.requestHandoff(params.id);
 
       response.status(200).json(result);
@@ -161,7 +188,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
     requireConversationHandle,
     async (request, response, next) => {
       try {
-        const query = parseRequest(paginationQuerySchema, request.query, 'Invalid pagination query.');
+        const query = parseRequest(
+          paginationQuerySchema,
+          request.query,
+          'Invalid pagination query.',
+        );
         const result = await options.service.listWaitingConversations(query);
 
         response.status(200).json(result);
@@ -179,7 +210,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
     async (request, response, next) => {
       try {
         const account = requireAuthenticatedAccount(request);
-        const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
+        const params = parseRequest(
+          conversationIdParamsSchema,
+          request.params,
+          'Invalid conversation id.',
+        );
         const result = await options.service.acceptWaitingConversation(params.id, account.id);
 
         response.status(200).json(result);
@@ -197,8 +232,16 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
     async (request, response, next) => {
       try {
         const account = requireAuthenticatedAccount(request);
-        const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
-        const body = parseRequest(sendAgentMessageSchema, request.body, 'Invalid agent message request.');
+        const params = parseRequest(
+          conversationIdParamsSchema,
+          request.params,
+          'Invalid conversation id.',
+        );
+        const body = parseRequest(
+          sendAgentMessageSchema,
+          request.body,
+          'Invalid agent message request.',
+        );
         const result = await options.service.sendAgentMessage(params.id, account.id, body);
 
         response.status(200).json(result);
@@ -216,7 +259,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
     async (request, response, next) => {
       try {
         const account = requireAuthenticatedAccount(request);
-        const params = parseRequest(conversationIdParamsSchema, request.params, 'Invalid conversation id.');
+        const params = parseRequest(
+          conversationIdParamsSchema,
+          request.params,
+          'Invalid conversation id.',
+        );
         const result = await options.service.closeAgentConversation(params.id, account.id);
 
         response.status(200).json(result);
@@ -235,7 +282,11 @@ export function createConversationRouter(options: ConversationRouterOptions): Ro
     requireConversationRead,
     async (request, response, next) => {
       try {
-        const query = parseRequest(listConversationsQuerySchema, request.query, 'Invalid conversations query.');
+        const query = parseRequest(
+          listConversationsQuerySchema,
+          request.query,
+          'Invalid conversations query.',
+        );
         const result = await options.service.listConversations(query);
 
         response.status(200).json(result);

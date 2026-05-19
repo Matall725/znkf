@@ -9,13 +9,26 @@ interface ChatPanelProps {
   sending: boolean;
   onSend: (content: string) => void;
   onLoadHistory?: () => void;
+  onRequestHandoff?: () => void;
+  handoffRequesting?: boolean;
+  onSubmitRating?: (score: number, comment?: string) => void;
+  submittingRating?: boolean;
+  ratingSubmitted?: boolean;
 }
 
-export function ChatPanel({ onClose, conversationState, messages = [], sending = false, onSend = () => {} }: ChatPanelProps) {
+export function ChatPanel({ onClose, conversationState, messages = [], sending = false, onSend = () => {}, onRequestHandoff, handoffRequesting = false, onSubmitRating, submittingRating = false, ratingSubmitted = false }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState('');
+  const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const [ratingComment, setRatingComment] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isReady = conversationState.kind === 'ready';
+  const conversation = isReady ? conversationState.conversation : null;
+  const status = conversation?.status;
+  const isBotServing = status === 'bot_serving';
+  const isWaitingAgent = status === 'waiting_agent' || status === 'handoff_pending_confirmation';
+  const isAgentServing = status === 'agent_serving';
+  const isClosed = status === 'closed';
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -183,6 +196,156 @@ export function ChatPanel({ onClose, conversationState, messages = [], sending =
           </div>
         )}
         <div ref={messagesEndRef} />
+      </div>
+
+      {/* Status & Handoff area */}
+      <div
+        style={{
+          padding: '0 12px',
+          borderTop: '1px solid #e5e7eb',
+        }}
+      >
+        {isWaitingAgent && (
+          <div
+            data-testid="handoff-waiting"
+            style={{
+              padding: '8px 0',
+              textAlign: 'center',
+              color: '#f59e0b',
+              fontSize: 13,
+            }}
+          >
+            正在为您转接人工坐席，请稍候...
+          </div>
+        )}
+        {isAgentServing && (
+          <div
+            style={{
+              padding: '8px 0',
+              textAlign: 'center',
+              color: '#10b981',
+              fontSize: 13,
+            }}
+          >
+            当前由人工坐席为您服务
+          </div>
+        )}
+        {ratingSubmitted && (
+          <div
+            style={{
+              padding: '8px 0',
+              textAlign: 'center',
+              color: '#10b981',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            感谢您的评价！
+          </div>
+        )}
+        {isClosed && !ratingSubmitted && (
+          <>
+            {onSubmitRating ? (
+              <div style={{ padding: '10px 0', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 13, color: '#6b7280' }}>请为本次服务评分</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                  {[1, 2, 3, 4, 5].map((score) => {
+                    const emojis = ['😡', '😟', '😐', '😊', '😍'];
+                    const isSelected = selectedScore === score;
+                    return (
+                      <button
+                        key={score}
+                        onClick={() => {
+                          setSelectedScore(score === selectedScore ? null : score);
+                          setRatingComment('');
+                        }}
+                        disabled={submittingRating}
+                        style={{
+                          fontSize: 28,
+                          background: 'transparent',
+                          border: isSelected ? '2px solid #1d4ed8' : '2px solid transparent',
+                          borderRadius: 8,
+                          cursor: submittingRating ? 'not-allowed' : 'pointer',
+                          padding: '2px 6px',
+                          opacity: submittingRating ? 0.5 : 1,
+                        }}
+                        aria-label={`评分 ${score}`}
+                      >
+                        {emojis[score - 1]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedScore !== null && (
+                  <>
+                    <textarea
+                      rows={2}
+                      placeholder="可选：补充您的意见"
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        resize: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={() => onSubmitRating(selectedScore, ratingComment || undefined)}
+                      disabled={submittingRating}
+                      style={{
+                        marginTop: 6,
+                        padding: '5px 16px',
+                        background: submittingRating ? '#e5e7eb' : '#1d4ed8',
+                        color: submittingRating ? '#9ca3af' : '#fff',
+                        border: 'none',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        cursor: submittingRating ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {submittingRating ? '提交中...' : '提交评分'}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '8px 0',
+                  textAlign: 'center',
+                  color: '#9ca3af',
+                  fontSize: 13,
+                }}
+              >
+                会话已结束
+              </div>
+            )}
+          </>
+        )}
+        {isBotServing && onRequestHandoff && (
+          <div style={{ padding: '8px 0', textAlign: 'center' }}>
+            <button
+              data-testid="handoff-btn"
+              onClick={onRequestHandoff}
+              disabled={handoffRequesting}
+              style={{
+                padding: '6px 20px',
+                background: handoffRequesting ? '#fef3c7' : '#f59e0b',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 13,
+                cursor: handoffRequesting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {handoffRequesting ? '转接中...' : '转人工'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Input area */}
